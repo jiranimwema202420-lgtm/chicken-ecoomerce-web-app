@@ -1,0 +1,243 @@
+"use client";
+
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { auth, db, storage } from "@/lib/firebase";
+import { Product } from "@/lib/types";
+import { useAuth } from "@/lib/auth-context";
+
+interface Props {
+  product?: Product;
+}
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const FALLBACK_IMAGE = "/placeholder.svg";
+const UPLOAD_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), milliseconds);
+    }),
+  ]);
+}
+
+function firebaseErrorMessage(error: unknown): string {
+  if (error && typeof error === "object" && "code" in error) {
+    const code = String((error as { code?: unknown }).code ?? "");
+
+    if (code.includes("permission-denied") || code.includes("unauthorized")) {
+      return "Firebase denied this save. Sign out, sign in again as admin, and deploy the latest Firestore/Storage rules.";
+    }
+
+    if (code.includes("storage/object-not-found")) {
+      return "The uploaded image could not be found. Try selecting it again.";
+    }
+
+    if (code.includes("storage/retry-limit-exceeded") || code.includes("storage/unknown")) {
+      return "The image upload failed. The product can still be saved without a new image; try again without selecting a file.";
+    }
+  }
+
+  return error instanceof Error ? error.message : "The product could not be saved.";
+}
+
+export default function ProductForm({ product }: Props) {
+  const router = useRouter();
+  const { isAdmin } = useAuth();
+  const submittingRef = useRef(false);
+  const [name, setName] = useState(product?.name ?? "");
+  const [description, setDescription] = useState(product?.description ?? "");
+  const [price, setPrice] = useState(product?.price ?? 0);
+  const [stock, setStock] = useState(product?.stock ?? 0);
+  const [category, setCategory] = useState(product?.category ?? "");
+  const [active, setActive] = useState(product?.active ?? true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState(product?.imageUrl ?? "");
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (preview.startsWith("blob:")) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
+  function onImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Choose a valid image file.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError("Product images must be 5 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    if (preview.startsWith("blob:")) URL.revokeObjectURL(preview);
+    setError("");
+    setImageFile(file);
+    setPreview(URL.createObjectURL(file));
+  }
+
+  async function uploadSelectedImage(): Promise<string> {
+    if (!imageFile) return product?.imageUrl || FALLBACK_IMAGE;
+
+    setStatus("Uploading image…");
+    const safeFileName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+    const storageRef = ref(storage, `products/${Date.now()}-${safeFileName}`);
+    const snapshot = await withTimeout(
+      uploadBytes(storageRef, imageFile, { contentType: imageFile.type }),
+      UPLOAD_TIMEOUT_MS,
+      "The image upload timed out. Try again without an image, or check Firebase Storage configuration."
+    );
+    return getDownloadURL(snapshot.ref);
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setError("");
+    setStatus("");
+
+    try {
+      if (!isAdmin || !auth.currentUser) {
+        throw new Error("Administrator access is required. Sign out and sign in again.");
+      }
+
+      // Force a fresh token so recently assigned admin claims are used by
+      // Firestore and Storage rules during this write.
+      await auth.currentUser.getIdToken(true);
+
+      const cleanName = name.trim();
+      const cleanDescription = description.trim();
+      const cleanCategory = category.trim();
+
+      if (!cleanName || !cleanDescription) {
+        throw new Error("Name and description are required.");
+      }
+
+      if (!Number.isFinite(price) || price <= 0) {
+        throw new Error("Enter a valid product price greater than zero.");
+      }
+
+      if (!Number.isInteger(stock) || stock < 0) {
+        throw new Error("Stock must be a whole number of zero or more.");
+      }
+
+      setSaving(true);
+
+      let imageUrl = product?.imageUrl || FALLBACK_IMAGE;
+      if (imageFile) {
+        imageUrl = await uploadSelectedImage();
+      }
+
+      setStatus(product ? "Updating product…" : "Creating product…");
+      const now = Date.now();
+      const data = {
+        name: cleanName,
+        description: cleanDescription,
+        price: Math.round(Number(price)),
+        stock: Math.trunc(Number(stock)),
+        category: cleanCategory,
+        active,
+        imageUrl,
+        updatedAt: now,
+      };
+
+      if (product) {
+        await updateDoc(doc(db, "products", product.id), data);
+      } else {
+        await addDoc(collection(db, "products"), {
+          ...data,
+          createdAt: now,
+        });
+      }
+
+      setStatus("Product saved. Returning to catalogue…");
+      router.replace("/admin/products");
+    } catch (saveError) {
+      console.error("Product save failed:", saveError);
+      setError(firebaseErrorMessage(saveError));
+      setStatus("");
+    } finally {
+      setSaving(false);
+      submittingRef.current = false;
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="card max-w-2xl space-y-5 p-5 sm:p-7">
+      <div>
+        <label htmlFor="product-image" className="mb-2 block text-sm font-semibold">Product image</label>
+        {preview && (
+          <div className="relative mb-3 aspect-[4/3] w-full max-w-xs overflow-hidden rounded-lg border border-line bg-line">
+            <Image src={preview} alt="Product preview" fill className="object-cover" sizes="320px" />
+          </div>
+        )}
+        <input
+          id="product-image"
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          onChange={onImageChange}
+          disabled={saving}
+          className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-forest file:px-4 file:py-2.5 file:font-semibold file:text-white hover:file:bg-forest-light disabled:opacity-60"
+        />
+        <p className="mt-2 text-xs text-ink/50">Optional. PNG, JPG, WEBP, or GIF; maximum 5 MB. A placeholder is used when no image is selected.</p>
+      </div>
+
+      <div>
+        <label htmlFor="name" className="mb-2 block text-sm font-semibold">Name</label>
+        <input id="name" required disabled={saving} className="input-field" value={name} onChange={(event) => setName(event.target.value)} />
+      </div>
+
+      <div>
+        <label htmlFor="description" className="mb-2 block text-sm font-semibold">Description</label>
+        <textarea id="description" required disabled={saving} rows={5} className="input-field resize-y" value={description} onChange={(event) => setDescription(event.target.value)} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="price" className="mb-2 block text-sm font-semibold">Price (KES)</label>
+          <input id="price" required disabled={saving} type="number" min={1} step="1" className="input-field" value={price} onChange={(event) => setPrice(Number(event.target.value))} />
+        </div>
+        <div>
+          <label htmlFor="stock" className="mb-2 block text-sm font-semibold">Stock</label>
+          <input id="stock" required disabled={saving} type="number" min={0} step="1" className="input-field" value={stock} onChange={(event) => setStock(Number(event.target.value))} />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="category" className="mb-2 block text-sm font-semibold">Category</label>
+        <input id="category" disabled={saving} className="input-field" placeholder="e.g. Broiler Chicken" value={category} onChange={(event) => setCategory(event.target.value)} />
+      </div>
+
+      <label className="flex items-center gap-3 rounded-md border border-line bg-canvas/60 p-4 text-sm font-semibold">
+        <input type="checkbox" disabled={saving} checked={active} onChange={(event) => setActive(event.target.checked)} className="h-4 w-4 accent-forest" />
+        Visible on storefront
+      </label>
+
+      {status && <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">{status}</p>}
+      {error && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700">{error}</p>}
+
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button type="button" disabled={saving} className="btn-secondary" onClick={() => router.push("/admin/products")}>Cancel</button>
+        <button type="submit" disabled={saving || !isAdmin} className="btn-primary">
+          {saving ? status || "Saving…" : product ? "Save changes" : "Create product"}
+        </button>
+      </div>
+    </form>
+  );
+}

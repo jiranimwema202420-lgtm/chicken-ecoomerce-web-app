@@ -1,0 +1,19 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/orders/[id]/route": "/api/orders/[id]",
+  "/api/mpesa/callback/route": "/api/mpesa/callback",
+  "/api/mpesa/stkpush/route": "/api/mpesa/stkpush",
+  "/account/page": "/account",
+  "/cart/page": "/cart",
+  "/checkout/page": "/checkout",
+  "/forgot-password/page": "/forgot-password",
+  "/login/page": "/login",
+  "/page": "/",
+  "/product/[id]/page": "/product/[id]",
+  "/register/page": "/register",
+  "/admin/login/page": "/admin/login",
+  "/admin/page": "/admin",
+  "/admin/products/[id]/page": "/admin/products/[id]",
+  "/admin/products/new/page": "/admin/products/new",
+  "/admin/products/page": "/admin/products"
+}

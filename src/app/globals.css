@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Aptos Display", "Segoe UI", Arial, sans-serif;
+  --font-body: "Aptos", "Segoe UI", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply m-0 bg-canvas font-body text-ink antialiased;
+  background-image:
+    radial-gradient(circle at 0 0, rgb(226 167 62 / 0.10), transparent 30rem),
+    radial-gradient(circle at 100% 10%, rgb(14 75 54 / 0.08), transparent 32rem);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.btn-primary {
+  @apply inline-flex min-h-11 items-center justify-center rounded-md bg-forest px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-forest-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-secondary {
+  @apply inline-flex min-h-11 items-center justify-center rounded-md border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink shadow-sm transition hover:border-forest hover:text-forest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-ghost {
+  @apply inline-flex min-h-10 items-center justify-center rounded-md px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-forest/5 hover:text-forest;
+}
+
+.input-field {
+  @apply min-h-11 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink shadow-sm outline-none transition placeholder:text-ink/35 focus:border-forest focus:ring-2 focus:ring-forest/15;
+}
+
+.card {
+  @apply rounded-lg border border-line bg-white shadow-[0_14px_40px_rgba(20,23,18,0.05)];
+}
+
+.section-shell {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+.eyebrow {
+  @apply text-xs font-bold uppercase tracking-[0.18em] text-forest;
+}
+
+:focus-visible {
+  outline: 2px solid #0e4b36;
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgb(226 167 62 / 0.35);
+}

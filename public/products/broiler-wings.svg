@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Chicken Wings</title>
+  <desc id="desc">Fresh · 1 kg</desc>
+  <rect width="1200" height="900" fill="#eff6ff"/>
+  <circle cx="600" cy="375" r="230" fill="#ffffff" opacity="0.78"/>
+  <g transform="translate(390 165)" fill="none" stroke="#1d4ed8" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M210 70c-95 6-166 79-166 173 0 105 85 190 190 190h98c80 0 145-65 145-145 0-70-50-128-116-141-30-52-84-82-151-77Z"/>
+    <path d="M142 212c34 28 56 70 56 116M332 432l24 83M250 432l-20 83M211 515h-45M357 515h47"/>
+    <circle cx="390" cy="140" r="8" fill="#1d4ed8" stroke="none"/>
+    <path d="M421 161l50 18-48 20M348 91c24-42 66-49 99-23-37 1-53 19-55 51"/>
+    <path d="M96 152 50 113M94 178 38 164M102 205 51 223"/>
+  </g>
+  <text x="600" y="690" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#1d4ed8">Chicken Wings</text>
+  <text x="600" y="758" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" fill="#1d4ed8" opacity="0.78">Fresh · 1 kg</text>
+  <rect x="470" y="805" width="260" height="8" rx="4" fill="#1d4ed8" opacity="0.35"/>
+</svg>

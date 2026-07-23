@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/mpesa/callback": {},
+    "/api/mpesa/stkpush": {},
+    "/api/orders/[id]": {}
+  }
+}
