@@ -7,13 +7,13 @@
   "/cart/page": "app/cart/page.js",
   "/checkout/page": "app/checkout/page.js",
   "/forgot-password/page": "app/forgot-password/page.js",
-  "/login/page": "app/login/page.js",
   "/page": "app/page.js",
-  "/product/[id]/page": "app/product/[id]/page.js",
   "/register/page": "app/register/page.js",
+  "/product/[id]/page": "app/product/[id]/page.js",
+  "/login/page": "app/login/page.js",
   "/admin/login/page": "app/admin/login/page.js",
   "/admin/page": "app/admin/page.js",
   "/admin/products/[id]/page": "app/admin/products/[id]/page.js",
-  "/admin/products/new/page": "app/admin/products/new/page.js",
-  "/admin/products/page": "app/admin/products/page.js"
+  "/admin/products/page": "app/admin/products/page.js",
+  "/admin/products/new/page": "app/admin/products/new/page.js"
 }

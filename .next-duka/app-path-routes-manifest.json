@@ -7,13 +7,13 @@
   "/cart/page": "/cart",
   "/checkout/page": "/checkout",
   "/forgot-password/page": "/forgot-password",
-  "/login/page": "/login",
   "/page": "/",
-  "/product/[id]/page": "/product/[id]",
   "/register/page": "/register",
+  "/product/[id]/page": "/product/[id]",
+  "/login/page": "/login",
   "/admin/login/page": "/admin/login",
   "/admin/page": "/admin",
   "/admin/products/[id]/page": "/admin/products/[id]",
-  "/admin/products/new/page": "/admin/products/new",
-  "/admin/products/page": "/admin/products"
+  "/admin/products/page": "/admin/products",
+  "/admin/products/new/page": "/admin/products/new"
 }
