@@ -6,6 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Minus, Plus, ShoppingBag } from "lucide-react";
+import posthog from "posthog-js";
 import { db } from "@/lib/firebase";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/store/cart-store";
@@ -28,7 +29,15 @@ export default function ProductPage() {
         if (!active) return;
         if (snapshot.exists()) {
           const nextProduct = { id: snapshot.id, ...snapshot.data() } as Product;
-          setProduct(nextProduct.active ? nextProduct : null);
+          const activeProduct = nextProduct.active ? nextProduct : null;
+          setProduct(activeProduct);
+          if (activeProduct) {
+            posthog.capture("product_viewed", {
+              product_id: activeProduct.id,
+              product_category: activeProduct.category,
+              product_price: activeProduct.price,
+            });
+          }
         }
       } catch (loadError) {
         console.error("Product load failed:", loadError);
@@ -124,6 +133,13 @@ export default function ProductPage() {
                 className="btn-primary min-h-12 flex-1 gap-2"
                 onClick={() => {
                   addItem(product, quantity);
+                  posthog.capture("product_added_to_cart", {
+                    product_id: product.id,
+                    product_category: product.category,
+                    product_price: product.price,
+                    quantity,
+                    source: "product_detail",
+                  });
                   router.push("/cart");
                 }}
               >

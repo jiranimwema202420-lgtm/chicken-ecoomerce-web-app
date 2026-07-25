@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ShoppingBag } from "lucide-react";
+import posthog from "posthog-js";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/store/cart-store";
 
@@ -59,7 +60,16 @@ export default function ProductCard({ product }: { product: Product }) {
             className="grid h-11 w-11 place-items-center rounded-md bg-forest text-white transition hover:bg-forest-light disabled:cursor-not-allowed disabled:bg-ink/20"
             disabled={soldOut}
             aria-label={`Add ${product.name} to cart`}
-            onClick={() => addItem(product)}
+            onClick={() => {
+              addItem(product);
+              posthog.capture("product_added_to_cart", {
+                product_id: product.id,
+                product_category: product.category,
+                product_price: product.price,
+                quantity: 1,
+                source: "product_listing",
+              });
+            }}
           >
             {soldOut ? <ArrowRight size={18} /> : <ShoppingBag size={18} />}
           </button>

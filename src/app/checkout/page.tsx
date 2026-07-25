@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, ChevronLeft, LoaderCircle, Smartphone, UserRound, XCircle } from "lucide-react";
 import { signInAnonymously } from "firebase/auth";
+import posthog from "posthog-js";
 import { useCartStore } from "@/store/cart-store";
 import { useAuth } from "@/lib/auth-context";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
@@ -56,6 +57,10 @@ export default function CheckoutPage() {
         clear();
         setVerifiedTotal(order.total);
         setStep("success");
+        posthog.capture("checkout_payment_completed", {
+          order_id: orderId,
+          total: order.total,
+        });
         setMessage(
           order.mpesaReceiptNumber
             ? `Payment received. M-Pesa receipt: ${order.mpesaReceiptNumber}`
@@ -65,6 +70,10 @@ export default function CheckoutPage() {
       }
 
       if (order.status === "failed" || order.status === "cancelled") {
+        posthog.capture("checkout_payment_failed", {
+          order_id: orderId,
+          reason: order.resultDescription ?? order.status,
+        });
         setStep("error");
         setMessage(
           order.resultDescription ||
@@ -99,6 +108,8 @@ export default function CheckoutPage() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
+          "X-POSTHOG-DISTINCT-ID": posthog.get_distinct_id() ?? "",
+          "X-POSTHOG-SESSION-ID": posthog.get_session_id() ?? "",
         },
         body: JSON.stringify({
           phone,

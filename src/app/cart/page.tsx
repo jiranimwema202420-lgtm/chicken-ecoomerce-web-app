@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Minus, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import posthog from "posthog-js";
 import { useCartStore } from "@/store/cart-store";
 
 export default function CartPage() {
@@ -60,7 +61,14 @@ export default function CartPage() {
                   <button
                     type="button"
                     className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700"
-                    onClick={() => removeItem(line.productId)}
+                    onClick={() => {
+                      posthog.capture("cart_item_removed", {
+                        product_id: line.productId,
+                        product_price: line.price,
+                        quantity: line.quantity,
+                      });
+                      removeItem(line.productId);
+                    }}
                   >
                     <Trash2 size={14} /> Remove
                   </button>
@@ -119,7 +127,14 @@ export default function CartPage() {
             <span className="font-display text-lg font-bold">Total</span>
             <span className="font-display text-2xl font-bold text-forest">KES {cartTotal.toLocaleString("en-KE")}</span>
           </div>
-          <button className="btn-primary w-full" onClick={() => router.push("/checkout")}>Proceed to checkout</button>
+          <button className="btn-primary w-full" onClick={() => {
+            posthog.capture("checkout_started", {
+              cart_total: cartTotal,
+              item_count: lines.reduce((sum, line) => sum + line.quantity, 0),
+              unique_products: lines.length,
+            });
+            router.push("/checkout");
+          }}>Proceed to checkout</button>
           <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-ink/50">
             <ShieldCheck size={16} className="mt-0.5 shrink-0 text-forest" />
             Product prices and stock are verified securely before the M-Pesa prompt is sent.

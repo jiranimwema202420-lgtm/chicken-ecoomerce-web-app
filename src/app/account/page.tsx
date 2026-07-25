@@ -17,6 +17,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { collection, getDocs, limit, query, where } from "firebase/firestore";
+import posthog from "posthog-js";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
@@ -130,6 +131,8 @@ export default function AccountPage() {
     try {
       if (name.trim().length < 2) throw new Error("Enter your full name.");
       await updateProfile(user, { displayName: name.trim() });
+      posthog.identify(user.uid, { name: name.trim() });
+      posthog.capture("profile_updated");
       await user.reload();
       setMessage("Your account details have been updated.");
     } catch (profileError) {
@@ -153,6 +156,8 @@ export default function AccountPage() {
   }
 
   async function handleSignOut() {
+    posthog.capture("user_signed_out");
+    posthog.reset();
     await signOut(auth);
     router.replace("/");
     router.refresh();

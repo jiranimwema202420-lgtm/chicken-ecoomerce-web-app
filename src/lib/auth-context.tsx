@@ -14,6 +14,7 @@ import {
   onIdTokenChanged,
   setPersistence,
 } from "firebase/auth";
+import posthog from "posthog-js";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 
 interface AuthContextValue {
@@ -50,6 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
       if (!active) return;
       setUser(firebaseUser);
+
+      if (firebaseUser && !firebaseUser.isAnonymous) {
+        posthog.identify(firebaseUser.uid, {
+          name: firebaseUser.displayName ?? undefined,
+          email: firebaseUser.email ?? undefined,
+        });
+      }
 
       try {
         if (firebaseUser) {
