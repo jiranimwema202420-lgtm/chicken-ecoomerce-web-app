@@ -8,6 +8,7 @@ import {
 } from "@/lib/mpesa";
 import { CartLine, Product } from "@/lib/types";
 import { getRequestUser } from "@/lib/server-auth";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export const runtime = "nodejs";
 
@@ -177,6 +178,23 @@ export async function POST(req: NextRequest) {
       mpesaMerchantRequestId: stk.MerchantRequestID,
       updatedAt: Date.now(),
     });
+
+    const phDistinctId = req.headers.get("X-POSTHOG-DISTINCT-ID") || authenticatedUser.uid;
+    const phSessionId = req.headers.get("X-POSTHOG-SESSION-ID") || undefined;
+    const posthogClient = getPostHogClient();
+    posthogClient?.capture({
+      distinctId: phDistinctId,
+      event: "checkout_initiated",
+      properties: {
+        $session_id: phSessionId,
+        order_id: orderRef.id,
+        total,
+        item_count: lines.reduce((sum, line) => sum + line.quantity, 0),
+        unique_products: lines.length,
+        is_guest: authenticatedUser.firebase?.sign_in_provider === "anonymous",
+      },
+    });
+    await posthogClient?.flush();
 
     return NextResponse.json({
       orderId: orderRef.id,

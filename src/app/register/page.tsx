@@ -14,6 +14,7 @@ import {
   signInWithPopup,
   updateProfile,
 } from "firebase/auth";
+import posthog from "posthog-js";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
@@ -67,6 +68,11 @@ export default function RegisterPage() {
 
       await updateProfile(registeredUser, { displayName: name.trim() });
       await sendEmailVerification(registeredUser);
+      posthog.identify(registeredUser.uid, {
+        name: name.trim(),
+        email: normalizedEmail,
+      });
+      posthog.capture("user_registered", { method: "email" });
       router.replace("/account?registered=1");
       router.refresh();
     } catch (registerError) {
@@ -85,12 +91,17 @@ export default function RegisterPage() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
 
+      let result;
       if (auth.currentUser?.isAnonymous) {
-        await linkWithPopup(auth.currentUser, provider);
+        result = await linkWithPopup(auth.currentUser, provider);
       } else {
-        await signInWithPopup(auth, provider);
+        result = await signInWithPopup(auth, provider);
       }
-
+      posthog.identify(result.user.uid, {
+        name: result.user.displayName ?? undefined,
+        email: result.user.email ?? undefined,
+      });
+      posthog.capture("user_registered", { method: "google" });
       router.replace("/account");
       router.refresh();
     } catch (registerError) {

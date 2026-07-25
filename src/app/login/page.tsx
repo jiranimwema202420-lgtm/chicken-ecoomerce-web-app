@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
+import posthog from "posthog-js";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
@@ -47,7 +48,12 @@ export default function CustomerLoginPage() {
 
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const result = await signInWithEmailAndPassword(auth, email.trim(), password);
+      posthog.identify(result.user.uid, {
+        name: result.user.displayName ?? undefined,
+        email: result.user.email ?? undefined,
+      });
+      posthog.capture("user_logged_in", { method: "email" });
       router.replace(destination());
       router.refresh();
     } catch (loginError) {
@@ -66,12 +72,17 @@ export default function CustomerLoginPage() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
 
+      let result;
       if (auth.currentUser?.isAnonymous) {
-        await linkWithPopup(auth.currentUser, provider);
+        result = await linkWithPopup(auth.currentUser, provider);
       } else {
-        await signInWithPopup(auth, provider);
+        result = await signInWithPopup(auth, provider);
       }
-
+      posthog.identify(result.user.uid, {
+        name: result.user.displayName ?? undefined,
+        email: result.user.email ?? undefined,
+      });
+      posthog.capture("user_logged_in", { method: "google" });
       router.replace(destination());
       router.refresh();
     } catch (loginError) {

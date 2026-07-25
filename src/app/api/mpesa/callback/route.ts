@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { CartLine } from "@/lib/types";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export const runtime = "nodejs";
 
@@ -42,9 +43,12 @@ export async function POST(req: NextRequest) {
     }
 
     const orderRef = ordersSnapshot.docs[0].ref;
+    const preOrderData = ordersSnapshot.docs[0].data();
     const metadataItems: CallbackItem[] = callback.CallbackMetadata?.Item ?? [];
     const metadataValue = (name: string) =>
       metadataItems.find((item) => item.Name === name)?.Value;
+
+    let transactionProcessed = false;
 
     await adminDb.runTransaction(async (transaction) => {
       const orderSnapshot = await transaction.get(orderRef);
@@ -52,6 +56,8 @@ export async function POST(req: NextRequest) {
 
       const order = orderSnapshot.data();
       if (!order || order.status === "paid") return;
+
+      transactionProcessed = true;
 
       if (resultCode !== 0) {
         transaction.update(orderRef, {
@@ -94,6 +100,33 @@ export async function POST(req: NextRequest) {
         updatedAt: Date.now(),
       });
     });
+
+    if (transactionProcessed && preOrderData) {
+      const posthogClient = getPostHogClient();
+      if (resultCode !== 0) {
+        posthogClient?.capture({
+          distinctId: preOrderData.userId,
+          event: "payment_failed",
+          properties: {
+            order_id: orderRef.id,
+            result_code: resultCode,
+            result_description: resultDescription,
+          },
+        });
+      } else {
+        posthogClient?.capture({
+          distinctId: preOrderData.userId,
+          event: "order_paid",
+          properties: {
+            order_id: orderRef.id,
+            total: preOrderData.total,
+            mpesa_receipt: metadataValue("MpesaReceiptNumber") ?? null,
+            mpesa_amount: Number(metadataValue("Amount") ?? preOrderData.total),
+          },
+        });
+      }
+      await posthogClient?.flush();
+    }
 
     return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
   } catch (error) {
