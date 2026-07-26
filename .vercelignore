@@ -1,0 +1,8 @@
+.next-duka/
+.next/
+node_modules/
+*.zip
+*.7z
+*.log
+serviceAccountKey.json
+*firebase-adminsdk*.json

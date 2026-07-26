@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+﻿import { createHash, randomBytes } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import {
@@ -185,7 +185,27 @@ export async function POST(req: NextRequest) {
       customerMessage: stk.CustomerMessage,
     });
   } catch (error) {
-    console.error("STK push error:", error);
+    const requestError = error as {
+      response?: {
+        status?: number;
+        data?: unknown;
+      };
+      config?: {
+        url?: string;
+        method?: string;
+      };
+    };
+
+    console.error("STK push error details:", {
+      message:
+        error instanceof Error
+          ? error.message
+          : String(error),
+      status: requestError.response?.status,
+      data: requestError.response?.data,
+      url: requestError.config?.url,
+      method: requestError.config?.method,
+    });
 
     if (orderId) {
       await adminDb
@@ -207,3 +227,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+
+

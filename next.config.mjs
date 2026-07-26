@@ -1,6 +1,5 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
-  distDir: ".next-duka",
   images: {
     remotePatterns: [
       {
@@ -16,3 +15,5 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
+
