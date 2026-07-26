@@ -1,20 +1,21 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ShoppingBag } from "lucide-react";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/store/cart-store";
+import posthog from "posthog-js";
 
 export default function ProductCard({ product }: { product: Product }) {
   const addItem = useCartStore((state) => state.addItem);
   const soldOut = product.stock <= 0;
 
   return (
-    <article className="card group flex h-full flex-col overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(20,23,18,0.10)]">
+    <article className="card group flex h-full flex-col overflow-hidden transition duration-300 hover:-translate-y-1 hover:border-white/90 hover:shadow-[0_22px_56px_rgba(20,23,18,0.13)]">
       <Link
         href={`/product/${product.id}`}
-        className="relative block aspect-[4/3] overflow-hidden bg-line"
+        className="relative block aspect-[4/3] overflow-hidden bg-white/30"
       >
         <Image
           src={product.imageUrl || "/placeholder.svg"}
@@ -24,7 +25,7 @@ export default function ProductCard({ product }: { product: Product }) {
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
 
-        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-forest backdrop-blur">
+        <span className="glass-badge absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide">
           {product.category || "Featured"}
         </span>
 
@@ -59,7 +60,14 @@ export default function ProductCard({ product }: { product: Product }) {
             className="grid h-11 w-11 place-items-center rounded-md bg-forest text-white transition hover:bg-forest-light disabled:cursor-not-allowed disabled:bg-ink/20"
             disabled={soldOut}
             aria-label={`Add ${product.name} to cart`}
-            onClick={() => addItem(product)}
+            onClick={() => {
+              addItem(product);
+              posthog.capture("product_added_to_cart", {
+                product_id: product.id,
+                product_category: product.category,
+                product_price: product.price,
+              });
+            }}
           >
             {soldOut ? <ArrowRight size={18} /> : <ShoppingBag size={18} />}
           </button>

@@ -5,6 +5,17 @@
 :root {
   --font-display: "Aptos Display", "Segoe UI", Arial, sans-serif;
   --font-body: "Aptos", "Segoe UI", Arial, sans-serif;
+
+  --glass-surface: rgb(255 255 255 / 0.60);
+  --glass-surface-strong: rgb(255 255 255 / 0.78);
+  --glass-border: rgb(255 255 255 / 0.68);
+  --glass-highlight: rgb(255 255 255 / 0.82);
+  --glass-shadow:
+    0 24px 70px rgb(20 23 18 / 0.10),
+    inset 0 1px 0 rgb(255 255 255 / 0.76);
+  --glass-shadow-soft:
+    0 14px 40px rgb(20 23 18 / 0.075),
+    inset 0 1px 0 rgb(255 255 255 / 0.70);
 }
 
 * {
@@ -17,9 +28,30 @@ html {
 
 body {
   @apply m-0 bg-canvas font-body text-ink antialiased;
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+  background-color: #f4f1ea;
   background-image:
-    radial-gradient(circle at 0 0, rgb(226 167 62 / 0.10), transparent 30rem),
-    radial-gradient(circle at 100% 10%, rgb(14 75 54 / 0.08), transparent 32rem);
+    radial-gradient(circle at 8% 4%, rgb(240 200 120 / 0.34), transparent 25rem),
+    radial-gradient(circle at 92% 8%, rgb(22 107 78 / 0.19), transparent 30rem),
+    radial-gradient(circle at 52% 88%, rgb(226 167 62 / 0.16), transparent 32rem),
+    linear-gradient(135deg, #f9f7f2 0%, #f2eee5 48%, #edf3ef 100%);
+  background-attachment: fixed;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -18rem;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 22% 30%, rgb(255 255 255 / 0.80), transparent 18rem),
+    radial-gradient(circle at 77% 26%, rgb(14 75 54 / 0.12), transparent 24rem),
+    radial-gradient(circle at 60% 78%, rgb(226 167 62 / 0.14), transparent 22rem);
+  filter: blur(44px);
+  transform: translateZ(0);
 }
 
 button,
@@ -29,32 +61,175 @@ select {
   font: inherit;
 }
 
-.btn-primary {
-  @apply inline-flex min-h-11 items-center justify-center rounded-md bg-forest px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-forest-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+@layer components {
+  .glass-panel {
+    @apply border border-white/60 bg-white/60 backdrop-blur-xl;
+    border-radius: 20px;
+    box-shadow: var(--glass-shadow-soft);
+  }
+
+  .glass-panel-strong {
+    @apply border border-white/70 bg-white/80 backdrop-blur-2xl;
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-dark-tile {
+    @apply border border-white/15 bg-white/10 backdrop-blur-xl;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.16),
+      0 14px 34px rgb(5 30 21 / 0.16);
+  }
+
+  .glass-navbar {
+    @apply border-b border-white/60 bg-white/65 backdrop-blur-2xl;
+    box-shadow:
+      0 10px 34px rgb(20 23 18 / 0.07),
+      inset 0 -1px 0 rgb(255 255 255 / 0.58);
+  }
+
+  .glass-mobile-menu {
+    @apply border border-white/70 bg-white/85 backdrop-blur-2xl;
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-footer {
+    @apply border-white/60 bg-white/45 backdrop-blur-xl;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72);
+  }
+
+  .glass-brand-mark {
+    background:
+      linear-gradient(145deg, rgb(22 107 78 / 0.98), rgb(10 53 39 / 0.96));
+    border: 1px solid rgb(255 255 255 / 0.24);
+    box-shadow:
+      0 10px 24px rgb(14 75 54 / 0.24),
+      inset 0 1px 0 rgb(255 255 255 / 0.22);
+  }
+
+  .glass-badge {
+    @apply border border-white/70 bg-white/80 text-forest backdrop-blur-xl;
+    box-shadow:
+      0 8px 24px rgb(20 23 18 / 0.10),
+      inset 0 1px 0 rgb(255 255 255 / 0.86);
+  }
+
+  .hero-glass {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+      linear-gradient(135deg, rgb(10 53 39 / 0.98), rgb(14 75 54 / 0.92) 48%, rgb(22 107 78 / 0.88)),
+      radial-gradient(circle at 75% 18%, rgb(240 200 120 / 0.30), transparent 22rem);
+    border: 1px solid rgb(255 255 255 / 0.14);
+    box-shadow:
+      0 34px 90px rgb(14 75 54 / 0.25),
+      inset 0 1px 0 rgb(255 255 255 / 0.16);
+  }
+
+  .hero-glass::before,
+  .hero-glass::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    border-radius: 9999px;
+    pointer-events: none;
+    filter: blur(4px);
+  }
+
+  .hero-glass::before {
+    width: 24rem;
+    height: 24rem;
+    top: -12rem;
+    right: -6rem;
+    background: radial-gradient(circle, rgb(240 200 120 / 0.28), transparent 66%);
+  }
+
+  .hero-glass::after {
+    width: 30rem;
+    height: 30rem;
+    bottom: -22rem;
+    left: 20%;
+    background: radial-gradient(circle, rgb(255 255 255 / 0.13), transparent 68%);
+  }
+
+  .btn-primary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-md bg-forest px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-forest-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    box-shadow:
+      0 10px 24px rgb(14 75 54 / 0.20),
+      inset 0 1px 0 rgb(255 255 255 / 0.16);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 14px 30px rgb(14 75 54 / 0.24),
+      inset 0 1px 0 rgb(255 255 255 / 0.18);
+  }
+
+  .btn-secondary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-md border border-white/70 bg-white/60 px-5 py-2.5 text-sm font-semibold text-ink backdrop-blur-lg transition hover:border-white hover:bg-white/80 hover:text-forest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    box-shadow:
+      0 8px 22px rgb(20 23 18 / 0.07),
+      inset 0 1px 0 rgb(255 255 255 / 0.80);
+  }
+
+  .btn-ghost {
+    @apply inline-flex min-h-10 items-center justify-center rounded-md px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-white/55 hover:text-forest;
+  }
+
+  .input-field {
+    @apply min-h-11 w-full rounded-md border border-white/70 bg-white/65 px-3 py-2 text-sm text-ink outline-none backdrop-blur-md transition placeholder:text-ink/35 focus:border-forest/40 focus:bg-white/85 focus:ring-2 focus:ring-forest/15;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.82),
+      0 7px 18px rgb(20 23 18 / 0.055);
+  }
+
+  .card {
+    @apply border border-white/65 bg-white/60 backdrop-blur-xl;
+    border-radius: 20px;
+    box-shadow: var(--glass-shadow-soft);
+  }
+
+  .section-shell {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.18em] text-forest;
+  }
 }
 
-.btn-secondary {
-  @apply inline-flex min-h-11 items-center justify-center rounded-md border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink shadow-sm transition hover:border-forest hover:text-forest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel,
+  .glass-panel-strong,
+  .glass-mobile-menu,
+  .card,
+  .input-field,
+  .btn-secondary {
+    background-color: rgb(255 255 255 / 0.94);
+  }
+
+  .glass-dark-tile {
+    background-color: rgb(255 255 255 / 0.12);
+  }
+
+  .glass-navbar,
+  .glass-footer {
+    background-color: rgb(247 245 241 / 0.96);
+  }
 }
 
-.btn-ghost {
-  @apply inline-flex min-h-10 items-center justify-center rounded-md px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-forest/5 hover:text-forest;
-}
-
-.input-field {
-  @apply min-h-11 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink shadow-sm outline-none transition placeholder:text-ink/35 focus:border-forest focus:ring-2 focus:ring-forest/15;
-}
-
-.card {
-  @apply rounded-lg border border-line bg-white shadow-[0_14px_40px_rgba(20,23,18,0.05)];
-}
-
-.section-shell {
-  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
-}
-
-.eyebrow {
-  @apply text-xs font-bold uppercase tracking-[0.18em] text-forest;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 :focus-visible {

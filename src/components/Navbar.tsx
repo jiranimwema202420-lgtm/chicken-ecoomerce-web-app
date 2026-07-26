@@ -25,10 +25,10 @@ export default function Navbar() {
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line/80 bg-canvas/90 backdrop-blur-xl">
+    <header className="glass-navbar sticky top-0 z-40">
       <div className="section-shell flex h-[72px] items-center justify-between">
         <Link href="/" className="flex items-center gap-2" onClick={closeMenu}>
-          <span className="grid h-10 w-10 place-items-center rounded-lg bg-forest text-white shadow-sm">
+          <span className="glass-brand-mark grid h-10 w-10 place-items-center rounded-xl text-white">
             <Store size={21} aria-hidden="true" />
           </span>
           <span>
@@ -52,7 +52,7 @@ export default function Navbar() {
         <nav
           className={`${
             menuOpen ? "flex" : "hidden"
-          } absolute left-4 right-4 top-[80px] flex-col gap-1 rounded-lg border border-line bg-white p-3 shadow-xl md:static md:flex md:flex-row md:items-center md:gap-2 md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
+          } glass-mobile-menu absolute left-4 right-4 top-[80px] flex-col gap-1 rounded-2xl p-3 md:static md:flex md:flex-row md:items-center md:gap-2 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none`}
         >
           <Link href="/#products" className="btn-ghost" onClick={closeMenu}>
             Shop
@@ -83,7 +83,7 @@ export default function Navbar() {
 
           <Link
             href="/cart"
-            className="relative inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-forest px-4 py-2 text-sm font-semibold text-white transition hover:bg-forest-light"
+            className="btn-primary relative gap-2 px-4"
             onClick={closeMenu}
           >
             <ShoppingBag size={18} /> Cart

@@ -99,7 +99,7 @@ export default function HomeCustomerLogin() {
 
   if (authLoading) {
     return (
-      <div className="rounded-2xl border border-white/15 bg-white p-6 text-ink shadow-xl">
+      <div className="glass-panel-strong rounded-2xl p-6 text-ink">
         <div className="h-5 w-40 animate-pulse rounded bg-line" />
         <div className="mt-4 h-11 animate-pulse rounded bg-line" />
         <div className="mt-3 h-11 animate-pulse rounded bg-line" />
@@ -110,7 +110,7 @@ export default function HomeCustomerLogin() {
 
   if (user && !user.isAnonymous) {
     return (
-      <div className="rounded-2xl border border-white/15 bg-white p-6 text-ink shadow-xl">
+      <div className="glass-panel-strong rounded-2xl p-6 text-ink">
         <div className="flex items-start gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-forest/10 text-forest">
             <CheckCircle2 size={22} aria-hidden="true" />
@@ -141,7 +141,7 @@ export default function HomeCustomerLogin() {
           disabled={submitting}
           onClick={handleSignOut}
         >
-          {submitting ? "Signing out…" : "Sign out"}
+          {submitting ? "Signing outâ€¦" : "Sign out"}
         </button>
 
         {error && (
@@ -154,7 +154,7 @@ export default function HomeCustomerLogin() {
   }
 
   return (
-    <div id="customer-login" className="rounded-2xl border border-white/15 bg-white p-6 text-ink shadow-xl">
+    <div id="customer-login" className="glass-panel-strong rounded-2xl p-6 text-ink">
       <p className="text-xs font-bold uppercase tracking-[0.16em] text-forest">
         Customer login
       </p>
@@ -224,7 +224,7 @@ export default function HomeCustomerLogin() {
         )}
 
         <button type="submit" className="btn-primary w-full gap-2" disabled={submitting}>
-          <LogIn size={17} /> {submitting ? "Signing in…" : "Sign in"}
+          <LogIn size={17} /> {submitting ? "Signing inâ€¦" : "Sign in"}
         </button>
       </form>
 
