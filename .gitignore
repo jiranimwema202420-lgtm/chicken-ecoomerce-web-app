@@ -11,3 +11,4 @@ out/
 serviceAccountKey.json
 .vercel
 .env*
+tsconfig.tsbuildinfo
