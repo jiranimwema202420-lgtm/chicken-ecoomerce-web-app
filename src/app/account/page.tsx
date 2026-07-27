@@ -20,6 +20,7 @@ import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
+import posthog from "posthog-js";
 import type { CartLine, OrderStatus } from "@/lib/types";
 
 interface CustomerOrder {
@@ -56,11 +57,21 @@ export default function AccountPage() {
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
+      if (
+        typeof window !== "undefined" &&
+        window.sessionStorage.getItem("dukaSigningOut") === "1"
+      ) {
+        window.sessionStorage.removeItem("dukaSigningOut");
+        window.location.replace("/");
+        return;
+      }
+
       router.replace("/login?next=/account");
       return;
     }
@@ -153,16 +164,34 @@ export default function AccountPage() {
   }
 
   async function handleSignOut() {
-    await signOut(auth);
-    router.replace("/");
-    router.refresh();
+    if (signingOut) return;
+
+    setSigningOut(true);
+    setError("");
+    setMessage("");
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("dukaSigningOut", "1");
+    }
+
+    try {
+      await signOut(auth);
+      window.location.replace("/");
+    } catch (signOutError) {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("dukaSigningOut");
+      }
+
+      setSigningOut(false);
+      setError(getAuthErrorMessage(signOutError));
+    }
   }
 
   if (authLoading || !user) {
     return (
       <div className="section-shell py-20 text-center">
         <RefreshCw className="mx-auto animate-spin text-forest" size={32} />
-        <p className="mt-3 text-sm text-ink/60">Loading your account…</p>
+        <p className="mt-3 text-sm text-ink/60">Loading your accountâ€¦</p>
       </div>
     );
   }
@@ -179,8 +208,14 @@ export default function AccountPage() {
             Manage your identity and review orders placed with this account.
           </p>
         </div>
-        <button type="button" className="btn-secondary gap-2" onClick={handleSignOut}>
-          <LogOut size={17} /> Sign out
+        <button
+          type="button"
+          className="btn-secondary gap-2"
+          disabled={signingOut}
+          onClick={handleSignOut}
+        >
+          <LogOut size={17} />
+          {signingOut ? "Signing outâ€¦" : "Sign out"}
         </button>
       </div>
 
@@ -227,7 +262,7 @@ export default function AccountPage() {
                 )}
               </div>
               <button type="submit" disabled={profileLoading} className="btn-primary w-full">
-                {profileLoading ? "Saving…" : "Save profile"}
+                {profileLoading ? "Savingâ€¦" : "Save profile"}
               </button>
             </form>
           )}
@@ -243,7 +278,7 @@ export default function AccountPage() {
           </div>
 
           {ordersLoading ? (
-            <div className="py-14 text-center text-sm text-ink/55"><RefreshCw className="mx-auto mb-3 animate-spin" size={24} />Loading orders…</div>
+            <div className="py-14 text-center text-sm text-ink/55"><RefreshCw className="mx-auto mb-3 animate-spin" size={24} />Loading ordersâ€¦</div>
           ) : orders.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed border-line p-8 text-center">
               <Package className="mx-auto text-ink/30" size={32} />
@@ -265,7 +300,7 @@ export default function AccountPage() {
                   <div className="mt-4 space-y-2 border-t border-line pt-4">
                     {order.lines.map((line) => (
                       <div key={line.productId} className="flex justify-between gap-4 text-sm">
-                        <span className="text-ink/65">{line.quantity} × {line.name}</span>
+                        <span className="text-ink/65">{line.quantity} Ã— {line.name}</span>
                         <span className="font-semibold">KES {(line.price * line.quantity).toLocaleString("en-KE")}</span>
                       </div>
                     ))}
