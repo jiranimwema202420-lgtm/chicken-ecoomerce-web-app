@@ -1,22 +1,24 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import {
   EmailAuthProvider,
-  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   linkWithCredential,
-  linkWithPopup,
   sendEmailVerification,
-  signInWithPopup,
   updateProfile,
 } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
+import { signInOrLinkWithGoogle } from "@/lib/google-auth";
 import { useAuth } from "@/lib/auth-context";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
+import posthog from "posthog-js";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -67,6 +69,8 @@ export default function RegisterPage() {
 
       await updateProfile(registeredUser, { displayName: name.trim() });
       await sendEmailVerification(registeredUser);
+      posthog.identify(registeredUser.uid, { email: registeredUser.email ?? undefined, name: name.trim() });
+      posthog.capture("user_registered", { method: "email" });
       router.replace("/account?registered=1");
       router.refresh();
     } catch (registerError) {
@@ -78,19 +82,15 @@ export default function RegisterPage() {
 
   async function handleGoogleRegister() {
     setError("");
-    if (!ensureConfigured()) return;
+
+    if (!ensureConfigured()) {
+      return;
+    }
 
     setLoading(true);
+
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-
-      if (auth.currentUser?.isAnonymous) {
-        await linkWithPopup(auth.currentUser, provider);
-      } else {
-        await signInWithPopup(auth, provider);
-      }
-
+      await signInOrLinkWithGoogle();
       router.replace("/account");
       router.refresh();
     } catch (registerError) {
@@ -149,7 +149,7 @@ export default function RegisterPage() {
           )}
 
           <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? "Creating account…" : "Create account"}
+            {loading ? "Creating accountâ€¦" : "Create account"}
           </button>
         </form>
 

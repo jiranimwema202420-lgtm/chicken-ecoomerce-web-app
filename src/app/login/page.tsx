@@ -1,18 +1,22 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogIn, Mail } from "lucide-react";
+import { LogIn,
+  Mail } from "lucide-react";
 import {
   GoogleAuthProvider,
-  linkWithPopup,
   signInWithEmailAndPassword,
-  signInWithPopup,
 } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
+import { signInOrLinkWithGoogle } from "@/lib/google-auth";
 import { useAuth } from "@/lib/auth-context";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
+import posthog from "posthog-js";
 
 function destination(): string {
   if (typeof window === "undefined") return "/account";
@@ -47,7 +51,9 @@ export default function CustomerLoginPage() {
 
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      posthog.identify(cred.user.uid, { email: cred.user.email ?? undefined, name: cred.user.displayName ?? undefined });
+      posthog.capture("user_signed_in", { method: "email" });
       router.replace(destination());
       router.refresh();
     } catch (loginError) {
@@ -59,19 +65,15 @@ export default function CustomerLoginPage() {
 
   async function handleGoogleLogin() {
     setError("");
-    if (!ensureConfigured()) return;
+
+    if (!ensureConfigured()) {
+      return;
+    }
 
     setLoading(true);
+
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-
-      if (auth.currentUser?.isAnonymous) {
-        await linkWithPopup(auth.currentUser, provider);
-      } else {
-        await signInWithPopup(auth, provider);
-      }
-
+      await signInOrLinkWithGoogle();
       router.replace(destination());
       router.refresh();
     } catch (loginError) {
@@ -146,7 +148,7 @@ export default function CustomerLoginPage() {
           )}
 
           <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Signing inâ€¦" : "Sign in"}
           </button>
         </form>
 
