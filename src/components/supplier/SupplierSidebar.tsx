@@ -4,36 +4,43 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import {
-  Handshake,
-  LayoutGrid,
+  ClipboardList,
+  LayoutDashboard,
   LogOut,
-  Package,
+  PlusCircle,
+  Store,
 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 
 const links = [
-  { href: "/admin", label: "Dashboard", icon: LayoutGrid, exact: true },
   {
-    href: "/admin/products",
-    label: "Products",
-    icon: Package,
-    exact: false,
+    href: "/supplier",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    exact: true,
   },
   {
-    href: "/admin/suppliers",
-    label: "Suppliers",
-    icon: Handshake,
+    href: "/supplier/requests/new",
+    label: "New supply request",
+    icon: PlusCircle,
     exact: false,
   },
 ];
 
-export default function AdminSidebar() {
+export default function SupplierSidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
   return (
-    <aside className="w-full shrink-0 lg:w-52">
+    <aside className="w-full shrink-0 lg:w-60">
       <nav className="card flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-24 lg:flex-col">
+        <div className="hidden px-3 pb-3 pt-2 lg:block">
+          <div className="flex items-center gap-2 text-forest">
+            <ClipboardList size={18} />
+            <span className="font-display font-bold">Supplier portal</span>
+          </div>
+        </div>
+
         {links.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
 
@@ -52,13 +59,20 @@ export default function AdminSidebar() {
           );
         })}
 
+        <Link
+          href="/"
+          className="flex min-w-fit items-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold text-ink/65 transition hover:bg-white/55 hover:text-forest lg:mt-2"
+        >
+          <Store size={17} /> Storefront
+        </Link>
+
         <button
           type="button"
           onClick={async () => {
             await signOut(auth);
-            router.replace("/admin/login");
+            router.replace("/supplier/login");
           }}
-          className="flex min-w-fit items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50/80 lg:mt-2"
+          className="flex min-w-fit items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50/80"
         >
           <LogOut size={17} /> Sign out
         </button>

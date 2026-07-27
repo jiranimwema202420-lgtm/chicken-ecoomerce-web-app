@@ -42,3 +42,41 @@ export interface Order {
   createdAt: number;
   updatedAt: number;
 }
+
+export type SupplyRequestStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "received";
+
+export interface SupplierProfile {
+  id: string;
+  uid: string;
+  businessName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  productIds: string[];
+  active: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface SupplyRequest {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  supplierEmail: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  expectedDeliveryDate: string;
+  notes: string;
+  status: SupplyRequestStatus;
+  reviewedBy?: string | null;
+  reviewedAt?: number | null;
+  receivedAt?: number | null;
+  createdAt: number;
+  updatedAt: number;
+}

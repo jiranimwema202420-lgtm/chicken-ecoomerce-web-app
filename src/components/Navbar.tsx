@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  Handshake,
   LogIn,
   Menu,
   ShieldCheck,
@@ -17,12 +18,14 @@ import { useAuth } from "@/lib/auth-context";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, isSupplier, loading } = useAuth();
+
   const count = useCartStore((state) =>
     state.lines.reduce((sum, line) => sum + line.quantity, 0)
   );
 
   const closeMenu = () => setMenuOpen(false);
+  const isCustomer = Boolean(user && !user.isAnonymous);
 
   return (
     <header className="glass-navbar sticky top-0 z-40">
@@ -32,7 +35,9 @@ export default function Navbar() {
             <Store size={21} aria-hidden="true" />
           </span>
           <span>
-            <span className="block font-display text-xl font-bold leading-none text-forest">Duka</span>
+            <span className="block font-display text-xl font-bold leading-none text-forest">
+              Duka
+            </span>
             <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-ink/45">
               Shop local
             </span>
@@ -58,9 +63,21 @@ export default function Navbar() {
             Shop
           </Link>
 
-          {!loading && user && !user.isAnonymous && (
+          {!loading && isCustomer && (
             <Link href="/account" className="btn-ghost gap-2" onClick={closeMenu}>
               <UserRound size={17} /> My account
+            </Link>
+          )}
+
+          {!loading && !isSupplier && (
+            <Link href="/supplier/login" className="btn-ghost gap-2" onClick={closeMenu}>
+              <Handshake size={17} /> Supplier sign in
+            </Link>
+          )}
+
+          {!loading && isSupplier && (
+            <Link href="/supplier" className="btn-ghost gap-2" onClick={closeMenu}>
+              <Handshake size={17} /> Supplier portal
             </Link>
           )}
 
@@ -69,23 +86,19 @@ export default function Navbar() {
               <Link href="/#customer-login" className="btn-ghost gap-2" onClick={closeMenu}>
                 <LogIn size={17} /> Sign in
               </Link>
-              <Link href="/register" className="btn-primary gap-2" onClick={closeMenu}>
-                <UserPlus size={17} /> Create account
+              <Link href="/register" className="btn-secondary gap-2" onClick={closeMenu}>
+                <UserPlus size={17} /> Register
               </Link>
             </>
           )}
 
-          {isAdmin && (
+          {!loading && isAdmin && (
             <Link href="/admin" className="btn-ghost gap-2" onClick={closeMenu}>
               <ShieldCheck size={17} /> Admin
             </Link>
           )}
 
-          <Link
-            href="/cart"
-            className="btn-primary relative gap-2 px-4"
-            onClick={closeMenu}
-          >
+          <Link href="/cart" className="btn-primary relative gap-2 px-4" onClick={closeMenu}>
             <ShoppingBag size={18} /> Cart
             {count > 0 && (
               <span className="grid h-5 min-w-5 place-items-center rounded-full bg-marigold px-1 text-xs font-bold text-ink">

@@ -19,6 +19,7 @@ import { auth, isFirebaseConfigured } from "@/lib/firebase";
 interface AuthContextValue {
   user: User | null;
   isAdmin: boolean;
+  isSupplier: boolean;
   isGuest: boolean;
   loading: boolean;
 }
@@ -26,6 +27,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   isAdmin: false,
+  isSupplier: false,
   isGuest: false,
   loading: true,
 });
@@ -33,6 +35,7 @@ const AuthContext = createContext<AuthContextValue>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSupplier, setIsSupplier] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,13 +57,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (firebaseUser) {
           const tokenResult = await firebaseUser.getIdTokenResult();
-          if (active) setIsAdmin(tokenResult.claims.admin === true);
+          if (active) {
+            setIsAdmin(tokenResult.claims.admin === true);
+            setIsSupplier(tokenResult.claims.supplier === true);
+          }
         } else if (active) {
           setIsAdmin(false);
+          setIsSupplier(false);
         }
       } catch (error) {
         console.error("Could not read Firebase auth claims:", error);
-        if (active) setIsAdmin(false);
+        if (active) {
+          setIsAdmin(false);
+          setIsSupplier(false);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -76,10 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       isAdmin,
+      isSupplier,
       isGuest: user?.isAnonymous === true,
       loading,
     }),
-    [user, isAdmin, loading]
+    [user, isAdmin, isSupplier, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
