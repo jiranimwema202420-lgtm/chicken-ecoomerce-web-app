@@ -9,3 +9,5 @@ out/
 .DS_Store
 .next-duka/
 serviceAccountKey.json
+.vercel
+.env*
