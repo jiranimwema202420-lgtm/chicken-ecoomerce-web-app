@@ -9,6 +9,8 @@ import {
   Plus,
 } from "lucide-react";
 import { useAllProducts } from "@/lib/useProducts";
+import StockInventoryTracker from "@/components/admin/StockInventoryTracker";
+import InventorySalesAnalysis from "@/components/admin/InventorySalesAnalysis";
 
 export default function AdminDashboard() {
   const { products, loading, error } = useAllProducts();
@@ -52,7 +54,7 @@ export default function AdminDashboard() {
               </span>
             </div>
             <p className="mt-5 font-display text-3xl font-bold">
-              {loading ? "â€¦" : value}
+              {loading ? "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : value}
             </p>
           </div>
         ))}
@@ -88,6 +90,9 @@ export default function AdminDashboard() {
           </Link>
         </div>
       </div>
+      <StockInventoryTracker products={products} loading={loading} />
+
+      <InventorySalesAnalysis products={products} loading={loading} />
     </div>
   );
 }
