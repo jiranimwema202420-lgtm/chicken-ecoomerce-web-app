@@ -148,7 +148,7 @@ export default function CustomerLoginPage() {
           )}
 
           <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? "Signing inâ€¦" : "Sign in"}
+            {loading ? "Signing inÃ¢â‚¬Â¦" : "Sign in"}
           </button>
         </form>
 

@@ -20,7 +20,6 @@ import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
-import posthog from "posthog-js";
 import type { CartLine, OrderStatus } from "@/lib/types";
 
 interface CustomerOrder {
@@ -191,7 +190,7 @@ export default function AccountPage() {
     return (
       <div className="section-shell py-20 text-center">
         <RefreshCw className="mx-auto animate-spin text-forest" size={32} />
-        <p className="mt-3 text-sm text-ink/60">Loading your accountâ€¦</p>
+        <p className="mt-3 text-sm text-ink/60">Loading your accountÃ¢â‚¬Â¦</p>
       </div>
     );
   }
@@ -215,7 +214,7 @@ export default function AccountPage() {
           onClick={handleSignOut}
         >
           <LogOut size={17} />
-          {signingOut ? "Signing outâ€¦" : "Sign out"}
+          {signingOut ? "Signing outÃ¢â‚¬Â¦" : "Sign out"}
         </button>
       </div>
 
@@ -262,7 +261,7 @@ export default function AccountPage() {
                 )}
               </div>
               <button type="submit" disabled={profileLoading} className="btn-primary w-full">
-                {profileLoading ? "Savingâ€¦" : "Save profile"}
+                {profileLoading ? "SavingÃ¢â‚¬Â¦" : "Save profile"}
               </button>
             </form>
           )}
@@ -278,7 +277,7 @@ export default function AccountPage() {
           </div>
 
           {ordersLoading ? (
-            <div className="py-14 text-center text-sm text-ink/55"><RefreshCw className="mx-auto mb-3 animate-spin" size={24} />Loading ordersâ€¦</div>
+            <div className="py-14 text-center text-sm text-ink/55"><RefreshCw className="mx-auto mb-3 animate-spin" size={24} />Loading ordersÃ¢â‚¬Â¦</div>
           ) : orders.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed border-line p-8 text-center">
               <Package className="mx-auto text-ink/30" size={32} />
@@ -300,7 +299,7 @@ export default function AccountPage() {
                   <div className="mt-4 space-y-2 border-t border-line pt-4">
                     {order.lines.map((line) => (
                       <div key={line.productId} className="flex justify-between gap-4 text-sm">
-                        <span className="text-ink/65">{line.quantity} Ã— {line.name}</span>
+                        <span className="text-ink/65">{line.quantity} Ãƒâ€” {line.name}</span>
                         <span className="font-semibold">KES {(line.price * line.quantity).toLocaleString("en-KE")}</span>
                       </div>
                     ))}
