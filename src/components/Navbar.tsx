@@ -39,7 +39,7 @@ export default function Navbar() {
               Duka
             </span>
             <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-ink/45">
-              Shop local
+              Wholesale broilers
             </span>
           </span>
         </Link>
@@ -59,7 +59,7 @@ export default function Navbar() {
             menuOpen ? "flex" : "hidden"
           } glass-mobile-menu absolute left-4 right-4 top-[80px] flex-col gap-1 rounded-2xl p-3 md:static md:flex md:flex-row md:items-center md:gap-2 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none`}
         >
-          <Link href="/#products" className="btn-ghost" onClick={closeMenu}>
+          <Link href="/shop#products" className="btn-ghost" onClick={closeMenu}>
             Shop
           </Link>
 

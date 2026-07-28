@@ -6,11 +6,11 @@ import InventorySyncProvider from "@/components/InventorySyncProvider";
 
 export const metadata: Metadata = {
   title: {
-    default: "Duka | Shop with M-Pesa",
+    default: "Duka Broilers | Wholesale Fresh Chicken",
     template: "%s | Duka",
   },
   description:
-    "A modern Kenyan online store with secure M-Pesa checkout and Firebase-powered product management.",
+    "Wholesale broiler chicken supply for hotels, restaurants, supermarkets, vendors, hospitals and institutions across Kenya.",
 };
 
 export default function RootLayout({
@@ -27,8 +27,8 @@ export default function RootLayout({
           <main className="min-h-[calc(100vh-72px)]">{children}</main>
           <footer className="glass-footer border-t">
             <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm text-ink/60 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-              <p>Ã‚Â© {new Date().getFullYear()} Duka. Built for fast, secure shopping.</p>
-              <p>Prices are shown in Kenyan shillings.</p>
+              <p>Ã‚Â© {new Date().getFullYear()} Duka Broilers. Wholesale fresh chicken for business.</p>
+              <p>Wholesale prices are shown in Kenyan shillings.</p>
             </div>
           </footer>
                   </InventorySyncProvider>
