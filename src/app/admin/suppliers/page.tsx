@@ -38,6 +38,7 @@ export default function AdminSuppliersPage() {
   const [businessName, setBusinessName] = useState("");
   const [contactName, setContactName] = useState("");
   const [phone, setPhone] = useState("");
+  const [manualSupplier, setManualSupplier] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingSupplier, setSavingSupplier] = useState(false);
@@ -117,6 +118,7 @@ export default function AdminSuppliersPage() {
           businessName,
           contactName,
           phone,
+          manual: manualSupplier,
           productIds: selectedProductIds,
         }),
       });
@@ -139,6 +141,7 @@ export default function AdminSuppliersPage() {
       setBusinessName("");
       setContactName("");
       setPhone("");
+      setManualSupplier(false);
       setSelectedProductIds([]);
       await loadData();
     } catch (saveError) {
@@ -256,7 +259,7 @@ export default function AdminSuppliersPage() {
               {metric.label}
             </p>
             <p className="mt-5 font-display text-3xl font-bold">
-              {loading ? "â€¦" : metric.value}
+              {loading ? "Ã¢â‚¬Â¦" : metric.value}
             </p>
           </div>
         ))}
@@ -267,12 +270,12 @@ export default function AdminSuppliersPage() {
           <div className="flex items-center gap-2">
             <UserPlus size={20} className="text-forest" />
             <h2 className="font-display text-xl font-bold">
-              Onboard or update supplier
+              Add or update supplier
             </h2>
           </div>
 
           <p className="mt-2 text-sm leading-6 text-ink/60">
-            The email must already belong to a registered Firebase user.
+            Select Manual supplier to add a supplier without a Firebase account. Leave it off to grant portal access to a registered Duka user.
           </p>
 
           <div className="mt-6 space-y-4">
@@ -341,6 +344,30 @@ export default function AdminSuppliersPage() {
               />
             </div>
 
+            <label
+              htmlFor="manual-supplier"
+              className="flex cursor-pointer gap-3 rounded-xl border border-white/65 bg-white/35 p-4"
+            >
+              <input
+                id="manual-supplier"
+                type="checkbox"
+                checked={manualSupplier}
+                onChange={(event) =>
+                  setManualSupplier(event.target.checked)
+                }
+                className="mt-1"
+              />
+              <span>
+                <span className="block text-sm font-semibold">
+                  Manual supplier
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-ink/55">
+                  Add this supplier to the admin list without
+                  requiring a Firebase login. The same email can be
+                  converted to portal access later.
+                </span>
+              </span>
+            </label>
             <fieldset>
               <legend className="mb-2 text-sm font-semibold">
                 Assigned products
@@ -348,7 +375,7 @@ export default function AdminSuppliersPage() {
 
               <div className="max-h-56 space-y-2 overflow-y-auto rounded-xl border border-white/65 bg-white/35 p-3">
                 {productsLoading ? (
-                  <p className="text-sm text-ink/55">Loading productsâ€¦</p>
+                  <p className="text-sm text-ink/55">Loading productsÃ¢â‚¬Â¦</p>
                 ) : products.length === 0 ? (
                   <p className="text-sm text-ink/55">No products available.</p>
                 ) : (
@@ -388,7 +415,7 @@ export default function AdminSuppliersPage() {
               className="btn-primary w-full gap-2"
             >
               <UserPlus size={17} />
-              {savingSupplier ? "Savingâ€¦" : "Save supplier access"}
+              {savingSupplier ? "SavingÃ¢â‚¬Â¦" : "Save supplier"}
             </button>
           </div>
         </form>
@@ -509,7 +536,7 @@ export default function AdminSuppliersPage() {
       <section className="card mt-6 overflow-hidden">
         <div className="border-b border-white/60 px-6 py-5">
           <h2 className="font-display text-xl font-bold">
-            Approved supplier accounts
+            Updated supplier list
           </h2>
         </div>
 
@@ -553,7 +580,7 @@ export default function AdminSuppliersPage() {
                             : "bg-ink/5 text-ink/45"
                         }`}
                       >
-                        {supplier.active ? "Active" : "Inactive"}
+                        {supplier.manual || !supplier.uid ? "Manual" : "Portal"} Â· {supplier.active ? "Active" : "Inactive"}
                       </span>
                     </td>
                   </tr>

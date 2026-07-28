@@ -20,6 +20,14 @@ export interface CartLine {
   maxQuantity?: number;
 }
 
+
+export type PaymentMethod = "mpesa" | "pay_on_delivery";
+
+export type DeliveryStatus =
+  | "pending"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled";
 export type OrderStatus =
   | "pending_payment"
   | "paid"
@@ -37,6 +45,13 @@ export interface Order {
   total: number;
   phone: string;
   status: OrderStatus;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: "unpaid" | "paid" | "cancelled";
+  deliveryStatus?: DeliveryStatus;
+  deliveryName?: string;
+  deliveryAddress?: string;
+  deliveryNotes?: string;
+  paymentReference?: string | null;
   mpesaCheckoutRequestId?: string;
   mpesaReceiptNumber?: string;
   createdAt: number;
@@ -52,6 +67,7 @@ export type SupplyRequestStatus =
 export interface SupplierProfile {
   id: string;
   uid: string;
+  manual?: boolean;
   businessName: string;
   contactName: string;
   email: string;

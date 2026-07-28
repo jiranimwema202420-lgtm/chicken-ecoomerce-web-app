@@ -7,7 +7,9 @@ import {
   Handshake,
   LayoutGrid,
   LogOut,
-  Package,
+  Package,
+  Truck,
+  UsersRound,
 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 
@@ -20,12 +22,22 @@ const links = [
     exact: false,
   },
   {
+    href: "/admin/customers",
+    label: "Customers",
+    icon: UsersRound,
+    exact: false,
+  },  {
     href: "/admin/suppliers",
     label: "Suppliers",
     icon: Handshake,
     exact: false,
   },
-];
+  {
+    href: "/admin/pay-on-delivery",
+    label: "Pay on delivery",
+    icon: Truck,
+    exact: false,
+  },];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
