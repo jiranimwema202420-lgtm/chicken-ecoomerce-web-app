@@ -165,85 +165,56 @@ export default function LandingPage() {
 
   return (
     <div className="overflow-hidden bg-[#f8faf7] text-ink">
-      <section className="relative isolate min-h-[650px] overflow-hidden border-b border-line">
-        <Image
-          src="/images/duka-broilers-hero.png"
-          alt="Healthy white broiler chickens ready for wholesale supply"
-          fill
-          priority
-          className="object-cover object-[68%_center]"
-          sizes="100vw"
-        />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
-
-        <div className="section-shell relative z-10 flex min-h-[650px] items-center py-16 sm:py-20">
-          <div className="max-w-3xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-forest/20 bg-white/90 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-forest shadow-sm backdrop-blur">
-              <PackageCheck size={16} />
-              Fresh today. Delivered for business.
-            </p>
-
-            <h1 className="mt-6 font-display text-5xl font-bold leading-[0.98] text-[#113d24] sm:text-6xl lg:text-7xl">
-              Premium broiler chickens at{" "}
-              <span className="text-[#e88900]">wholesale prices.</span>
-            </h1>
-
-            <p className="mt-6 max-w-2xl text-base leading-8 text-ink/70 sm:text-lg">
-              We supply fresh broiler chickens to hotels, restaurants,
-              supermarkets, street vendors, institutions, hospitals and
-              commercial kitchens across Kenya.
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              {[
-                "Wholesale pricing",
-                "Fresh supply",
-                "Reliable fulfilment",
-                "M-Pesa and pay on delivery",
-              ].map((item) => (
-                <span
-                  key={item}
-                  className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-2 text-xs font-bold text-[#113d24] shadow-sm backdrop-blur"
-                >
-                  <CheckCircle2 size={15} className="text-forest" />
-                  {item}
-                </span>
-              ))}
-            </div>
-
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/shop"
-                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-lg bg-[#124c2a] px-7 py-4 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#0d3d21]"
-              >
-                Shop wholesale broilers
-                <ArrowRight size={18} />
-              </Link>
-
-              <Link
-                href="/register"
-                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-lg border border-[#124c2a]/30 bg-white/90 px-7 py-4 text-sm font-bold text-[#124c2a] shadow-sm backdrop-blur transition hover:bg-white"
-              >
-                <UsersRound size={18} />
-                Create buyer account
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-6 right-6 z-10 hidden max-w-sm rounded-2xl border border-white/20 bg-[#124c2a]/95 p-5 text-white shadow-2xl backdrop-blur lg:block">
-          <div className="flex items-start gap-4">
-            <Truck className="mt-1 shrink-0 text-[#f5a000]" size={34} />
-            <div>
-              <p className="font-display text-xl font-bold">
-                Bulk orders. Better pricing.
+      <section className="relative overflow-hidden border-b border-[#173d2a] bg-[#071d13] text-white">
+        <div aria-hidden="true" className="absolute inset-0 opacity-70" style={{backgroundImage:"radial-gradient(circle at 8% 12%, rgba(226,167,62,0.18), transparent 24rem), radial-gradient(circle at 88% 82%, rgba(22,107,78,0.28), transparent 28rem)"}} />
+        <div className="section-shell relative py-8 sm:py-10 lg:py-14">
+          <div className="grid min-h-[640px] overflow-hidden rounded-[28px] border border-white/10 bg-[#0b2b1d] shadow-[0_32px_90px_rgba(0,0,0,0.34)] lg:grid-cols-[0.92fr_1.08fr]">
+            <div className="relative z-10 flex flex-col justify-center px-6 py-12 sm:px-10 lg:px-14 lg:py-16">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f2a317]/35 bg-[#f2a317]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#ffd47c]">
+                <PackageCheck size={16} />
+                Wholesale poultry supply
+              </div>
+              <h1 className="mt-7 max-w-2xl font-display text-4xl font-bold leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl lg:text-6xl">
+                Fresh broiler chickens for <span className="text-[#f2a317]">serious food businesses.</span>
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-8 text-white/72 sm:text-lg">
+                Wholesale supply for hotels, restaurants, supermarkets, street vendors, hospitals and institutions across Kenya. Order with clear pricing, visible stock and dependable fulfilment.
               </p>
-              <p className="mt-1 text-sm leading-6 text-white/75">
-                Plan recurring supply and keep your kitchen, outlet or
-                retail branch stocked.
-              </p>
+              <div className="mt-8 grid max-w-xl grid-cols-2 gap-3 sm:grid-cols-4">
+                {[["Bulk","pricing"],["Fresh","stock"],["M-Pesa","checkout"],["POD","available"]].map(([value,label])=>(
+                  <div key={value} className="rounded-xl border border-white/10 bg-white/[0.055] px-4 py-3">
+                    <p className="font-display text-lg font-bold text-white">{value}</p>
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/48">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Link href="/shop" className="inline-flex min-h-13 items-center justify-center gap-2 rounded-lg bg-[#f2a317] px-7 py-4 text-sm font-bold text-[#102d1e] shadow-[0_14px_30px_rgba(242,163,23,0.24)] transition hover:-translate-y-0.5 hover:bg-[#ffb323]">
+                  Browse wholesale stock <ArrowRight size={18} />
+                </Link>
+                <Link href="/register" className="inline-flex min-h-13 items-center justify-center gap-2 rounded-lg border border-white/18 bg-white/[0.06] px-7 py-4 text-sm font-bold text-white transition hover:border-white/30 hover:bg-white/[0.10]">
+                  <UsersRound size={18} /> Open buyer account
+                </Link>
+              </div>
+              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-semibold text-white/62">
+                <span className="inline-flex items-center gap-2"><CheckCircle2 size={16} className="text-[#f2a317]" />Transparent order records</span>
+                <span className="inline-flex items-center gap-2"><CheckCircle2 size={16} className="text-[#f2a317]" />Conflict-resolution support</span>
+              </div>
+            </div>
+            <div className="relative min-h-[390px] overflow-hidden lg:min-h-full">
+              <Image src="/images/duka-broilers-hero.jpg" alt="Healthy white broiler chickens ready for wholesale supply" fill priority className="object-cover object-center" sizes="(min-width: 1024px) 54vw, 100vw" />
+              <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+              <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/15 bg-black/45 p-5 text-white shadow-xl backdrop-blur-md sm:bottom-7 sm:left-7 sm:right-auto sm:max-w-sm">
+                <div className="flex items-start gap-4">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#f2a317] text-[#102d1e]"><Truck size={23} /></span>
+                  <div>
+                    <p className="font-display text-lg font-bold">Built for recurring bulk orders</p>
+                    <p className="mt-1 text-sm leading-6 text-white/70">Keep kitchens, outlets and supermarket branches supplied with a clearer ordering workflow.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute right-5 top-5 rounded-full border border-white/20 bg-[#0b2b1d]/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-white backdrop-blur-md sm:right-7 sm:top-7">Kenya wholesale supply</div>
             </div>
           </div>
         </div>
@@ -280,42 +251,114 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="border-y border-line bg-white py-16 sm:py-20">
+
+      <section className="duka-benefits-section border-y border-line py-16 sm:py-20">
         <div className="section-shell">
-          <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-            <div>
+          <div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
+            <div className="lg:sticky lg:top-28">
               <p className="eyebrow">Why Duka Broilers</p>
-              <h2 className="mt-3 font-display text-3xl font-bold text-[#113d24] sm:text-5xl">
+
+              <h2 className="mt-3 max-w-xl font-display text-3xl font-bold leading-tight sm:text-5xl">
                 Better control over every wholesale order
               </h2>
-              <p className="mt-5 text-sm leading-7 text-ink/60 sm:text-base">
-                The platform connects product availability, customer
-                orders, payment methods, invoices, receipts and delivery
-                records into one buying experience.
+
+              <p className="mt-5 max-w-xl text-sm leading-7 sm:text-base">
+                Duka Broilers brings product availability, customer ordering,
+                payments, invoices, receipts and delivery records into one
+                clear purchasing workflow.
               </p>
+
+              <div className="mt-7 space-y-3">
+                {[
+                  "Know what is in stock before placing an order",
+                  "Track purchases, payments and delivery status",
+                  "Access invoices, receipts and order history",
+                  "Resolve quantity, quality or payment concerns transparently",
+                ].map((item) => (
+                  <div key={item} className="benefits-check-row">
+                    <CheckCircle2 size={18} />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
 
               <Link
                 href="/shop"
-                className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-forest hover:underline"
+                className="mt-8 inline-flex items-center gap-2 rounded-lg bg-forest px-5 py-3 text-sm font-bold text-white transition hover:bg-forest-light"
               >
                 View current products
                 <ArrowRight size={17} />
               </Link>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {benefits.map(({ icon: Icon, title, text }) => (
-                <article
-                  key={title}
-                  className="rounded-2xl border border-line bg-[#f8faf7] p-6"
-                >
-                  <Icon size={24} className="text-forest" />
-                  <h3 className="mt-4 font-display text-lg font-bold">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {[
+                {
+                  icon: BadgeCheck,
+                  title: "Consistent quality",
+                  description:
+                    "Broilers are selected and prepared to support reliable portioning, menu planning and repeat purchasing.",
+                  bullets: [
+                    "Commercial kitchen suitability",
+                    "Clear product information",
+                    "Better consistency across orders",
+                  ],
+                },
+                {
+                  icon: Scale,
+                  title: "Wholesale savings",
+                  description:
+                    "Bulk pricing helps restaurants, hotels, supermarkets and institutions manage food costs more effectively.",
+                  bullets: [
+                    "Volume-based buying",
+                    "Improved cost control",
+                    "Better margin planning",
+                  ],
+                },
+                {
+                  icon: Truck,
+                  title: "Reliable fulfilment",
+                  description:
+                    "Stock visibility, order status and delivery coordination help buyers avoid last-minute supply disruption.",
+                  bullets: [
+                    "Visible stock availability",
+                    "Order status tracking",
+                    "Delivery coordination",
+                  ],
+                },
+                {
+                  icon: ShieldCheck,
+                  title: "Transparent records",
+                  description:
+                    "Every purchase can be supported by structured order records, payment references, invoices and receipts.",
+                  bullets: [
+                    "Invoices and receipts",
+                    "Payment and order history",
+                    "Clear dispute documentation",
+                  ],
+                },
+              ].map(({ icon: Icon, title, description, bullets }) => (
+                <article key={title} className="benefit-card">
+                  <div className="benefit-card-icon">
+                    <Icon size={24} />
+                  </div>
+
+                  <h3 className="mt-5 font-display text-xl font-bold">
                     {title}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-ink/60">
-                    {text}
+
+                  <p className="mt-3 text-sm leading-7">
+                    {description}
                   </p>
+
+                  <ul className="mt-5 space-y-3">
+                    {bullets.map((bullet) => (
+                      <li key={bullet} className="benefit-card-bullet">
+                        <CheckCircle2 size={15} />
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </article>
               ))}
             </div>
