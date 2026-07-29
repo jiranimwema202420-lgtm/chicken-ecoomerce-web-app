@@ -3,62 +3,431 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAdmin() {
-      return request.auth != null && request.auth.token.admin == true;
+    // ------------------------------------------------------------------
+    // Authentication and role helpers
+    // ------------------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
     }
+
+    function isVerifiedUser() {
+      return signedIn()
+        && request.auth.token.email_verified == true;
+    }
+
+    function role() {
+      return signedIn() && request.auth.token.role is string
+        ? request.auth.token.role
+        : 'customer';
+    }
+
+    // Supports the existing legacy Boolean claims while the application
+    // transitions to a single role claim.
+    function isAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.admin == true
+          || role() == 'admin'
+        );
+    }
+
+    function isOperations() {
+      return isAdmin()
+        || role() == 'operations'
+        || role() == 'order_manager';
+    }
+
+    function isInventoryManager() {
+      return isAdmin()
+        || role() == 'inventory_manager'
+        || role() == 'operations';
+    }
+
+    function isFinance() {
+      return isAdmin()
+        || role() == 'finance'
+        || role() == 'accountant';
+    }
+
+    function isSupport() {
+      return isAdmin()
+        || role() == 'support'
+        || role() == 'operations';
+    }
+
+    function isSupplier() {
+      return signedIn()
+        && (
+          request.auth.token.supplier == true
+          || role() == 'supplier'
+        );
+    }
+
+    function ownsUid(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function ownsExistingDocument(field) {
+      return signedIn()
+        && resource.data[field] is string
+        && resource.data[field] == request.auth.uid;
+    }
+
+    function ownsIncomingDocument(field) {
+      return signedIn()
+        && request.resource.data[field] is string
+        && request.resource.data[field] == request.auth.uid;
+    }
+
+    function immutable(field) {
+      return request.resource.data[field] == resource.data[field];
+    }
+
+    function changedOnly(fields) {
+      return request.resource.data
+        .diff(resource.data)
+        .affectedKeys()
+        .hasOnly(fields);
+    }
+
+    // ------------------------------------------------------------------
+    // Product catalogue
+    // ------------------------------------------------------------------
 
     function validProduct(data) {
       return data.keys().hasOnly([
           'name',
           'description',
           'price',
+          'compareAtPrice',
           'imageUrl',
           'category',
+          'sku',
+          'slug',
           'stock',
+          'featured',
           'active',
+          'status',
           'createdAt',
           'updatedAt'
         ])
         && data.name is string
-        && data.name.size() > 0
+        && data.name.size() >= 2
         && data.name.size() <= 120
         && data.description is string
-        && data.description.size() > 0
         && data.description.size() <= 3000
         && data.price is number
         && data.price > 0
         && data.price <= 500000
+        && (!('compareAtPrice' in data)
+          || (
+            data.compareAtPrice is number
+            && data.compareAtPrice >= data.price
+            && data.compareAtPrice <= 500000
+          ))
         && data.imageUrl is string
+        && data.imageUrl.size() <= 2048
         && data.category is string
+        && data.category.size() >= 1
         && data.category.size() <= 80
+        && (!('sku' in data)
+          || (data.sku is string && data.sku.size() <= 80))
+        && (!('slug' in data)
+          || (data.slug is string && data.slug.size() <= 160))
         && data.stock is int
         && data.stock >= 0
-        && data.stock <= 100000
+        && data.stock <= 1000000
+        && (!('featured' in data) || data.featured is bool)
         && data.active is bool
+        && (!('status' in data)
+          || (
+            data.status is string
+            && data.status in ['ACTIVE', 'DRAFT', 'ARCHIVED', 'OUT_OF_STOCK']
+          ))
         && data.createdAt is number
-        && data.updatedAt is number;
+        && data.updatedAt is number
+        && data.updatedAt >= data.createdAt;
     }
 
     match /products/{productId} {
-      allow get, list: if resource.data.active == true || isAdmin();
-      allow create: if isAdmin() && validProduct(request.resource.data);
-      allow update: if isAdmin()
+      allow get, list: if resource.data.active == true
+        || isInventoryManager();
+
+      allow create: if isInventoryManager()
+        && validProduct(request.resource.data);
+
+      allow update: if isInventoryManager()
         && validProduct(request.resource.data)
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && immutable('createdAt');
+
       allow delete: if isAdmin();
     }
 
-    function isOrderOwner() {
-      return request.auth != null
-        && resource.data.userId is string
-        && resource.data.userId == request.auth.uid;
+    // ------------------------------------------------------------------
+    // Customer identity and profile records
+    // ------------------------------------------------------------------
+
+    function validCustomerProfile(data, uid) {
+      return data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'email',
+          'phone',
+          'businessName',
+          'businessType',
+          'address',
+          'photoUrl',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.uid == uid
+        && data.displayName is string
+        && data.displayName.size() <= 120
+        && data.email is string
+        && data.email.size() <= 320
+        && data.phone is string
+        && data.phone.size() <= 30
+        && (!('businessName' in data)
+          || (data.businessName is string && data.businessName.size() <= 160))
+        && (!('businessType' in data)
+          || (data.businessType is string && data.businessType.size() <= 80))
+        && (!('address' in data)
+          || (data.address is string && data.address.size() <= 500))
+        && (!('photoUrl' in data)
+          || (data.photoUrl is string && data.photoUrl.size() <= 2048))
+        && data.createdAt is number
+        && data.updatedAt is number
+        && data.updatedAt >= data.createdAt;
     }
 
-    // Checkout writes and payment updates remain server-only. A signed-in
-    // customer may read only orders linked to their own Firebase UID.
+    match /customers/{uid} {
+      allow get: if ownsUid(uid) || isSupport();
+      allow list: if isSupport();
+
+      allow create: if ownsUid(uid)
+        && isVerifiedUser()
+        && validCustomerProfile(request.resource.data, uid);
+
+      allow update: if (
+          ownsUid(uid)
+          && validCustomerProfile(request.resource.data, uid)
+          && immutable('uid')
+          && immutable('createdAt')
+          && changedOnly([
+            'displayName',
+            'phone',
+            'businessName',
+            'businessType',
+            'address',
+            'photoUrl',
+            'updatedAt'
+          ])
+        )
+        || isSupport();
+
+      allow delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // Orders
+    // All creation, payment changes, stock changes and status transitions
+    // are server-only. Firebase Admin SDK bypasses these rules.
+    // ------------------------------------------------------------------
+
+    function ownsOrder() {
+      return signedIn()
+        && (
+          (
+            resource.data.userId is string
+            && resource.data.userId == request.auth.uid
+          )
+          || (
+            resource.data.customerId is string
+            && resource.data.customerId == request.auth.uid
+          )
+          || (
+            resource.data.uid is string
+            && resource.data.uid == request.auth.uid
+          )
+        );
+    }
+
     match /orders/{orderId} {
-      allow get, list: if isAdmin() || isOrderOwner();
+      allow get: if ownsOrder() || isOperations() || isFinance() || isSupport();
+      allow list: if ownsOrder() || isOperations() || isFinance() || isSupport();
+
+      // Server-only writes.
+      allow create, update, delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // Payments and financial records
+    // ------------------------------------------------------------------
+
+    function ownsPayment() {
+      return signedIn()
+        && (
+          (
+            resource.data.userId is string
+            && resource.data.userId == request.auth.uid
+          )
+          || (
+            resource.data.customerId is string
+            && resource.data.customerId == request.auth.uid
+          )
+          || (
+            resource.data.uid is string
+            && resource.data.uid == request.auth.uid
+          )
+        );
+    }
+
+    match /payments/{paymentId} {
+      allow get: if ownsPayment() || isFinance();
+      allow list: if ownsPayment() || isFinance();
+
+      // Payment records must only be written by verified server callbacks.
+      allow create, update, delete: if false;
+    }
+
+    match /invoices/{invoiceId} {
+      allow get: if ownsExistingDocument('userId')
+        || ownsExistingDocument('customerId')
+        || isFinance();
+      allow list: if ownsExistingDocument('userId')
+        || ownsExistingDocument('customerId')
+        || isFinance();
+      allow create, update, delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // Suppliers
+    // ------------------------------------------------------------------
+
+    function ownsSupplierRecord() {
+      return isSupplier()
+        && (
+          (
+            resource.data.uid is string
+            && resource.data.uid == request.auth.uid
+          )
+          || (
+            resource.data.userId is string
+            && resource.data.userId == request.auth.uid
+          )
+        );
+    }
+
+    match /suppliers/{supplierId} {
+      allow get: if ownsSupplierRecord() || isOperations();
+      allow list: if isOperations();
+
+      // Supplier onboarding and role assignment remain server-controlled.
+      allow create, update, delete: if false;
+    }
+
+    match /supplierOrders/{supplierOrderId} {
+      allow get, list: if ownsSupplierRecord()
+        || isInventoryManager()
+        || isFinance();
+      allow create, update, delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // Inventory audit data
+    // ------------------------------------------------------------------
+
+    match /inventoryMovements/{movementId} {
+      allow get, list: if isInventoryManager() || isFinance();
+      allow create, update, delete: if false;
+    }
+
+    match /stockReservations/{reservationId} {
+      allow get, list: if isInventoryManager() || isOperations();
+      allow create, update, delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // Customer disputes and support cases
+    // ------------------------------------------------------------------
+
+    function validDispute(data) {
+      return data.keys().hasOnly([
+          'userId',
+          'orderId',
+          'category',
+          'subject',
+          'description',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.userId == request.auth.uid
+        && data.orderId is string
+        && data.orderId.size() <= 160
+        && data.category is string
+        && data.category in [
+          'QUALITY',
+          'QUANTITY',
+          'DELIVERY',
+          'PAYMENT',
+          'REFUND',
+          'OTHER'
+        ]
+        && data.subject is string
+        && data.subject.size() >= 5
+        && data.subject.size() <= 160
+        && data.description is string
+        && data.description.size() >= 10
+        && data.description.size() <= 3000
+        && data.status == 'OPEN'
+        && data.createdAt is number
+        && data.updatedAt is number
+        && data.updatedAt >= data.createdAt;
+    }
+
+    match /disputes/{disputeId} {
+      allow get, list: if ownsExistingDocument('userId') || isSupport();
+
+      allow create: if isVerifiedUser()
+        && validDispute(request.resource.data);
+
+      // Customers cannot change status or alter audit fields.
+      allow update: if (
+          ownsExistingDocument('userId')
+          && immutable('userId')
+          && immutable('orderId')
+          && immutable('status')
+          && immutable('createdAt')
+          && changedOnly(['subject', 'description', 'updatedAt'])
+        )
+        || isSupport();
+
+      allow delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // Audit logs and administrative configuration
+    // ------------------------------------------------------------------
+
+    match /auditLogs/{logId} {
+      allow get, list: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /appConfig/{configId} {
+      allow get: if configId == 'public' || isAdmin();
+      allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // Explicit deny-by-default fallback
+    // ------------------------------------------------------------------
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
