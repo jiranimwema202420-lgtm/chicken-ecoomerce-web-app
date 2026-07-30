@@ -1,233 +1,388 @@
-# Duka — Next.js E-commerce with M-Pesa
+# Duka Broilers Ecommerce
 
-Duka is a production-oriented Kenyan e-commerce starter built with Next.js 15,
-React 19, Tailwind CSS, Firebase, and Safaricom Daraja STK Push. It includes a
-responsive storefront, persistent cart, secure server-verified checkout, and an
-admin catalogue dashboard.
+Duka Broilers is a production-oriented wholesale poultry ecommerce platform for
+hotels, restaurants, supermarkets, street vendors, hospitals, schools,
+institutions, caterers, and other commercial buyers in Kenya.
 
-## Included features
+The application combines a wholesale marketing site, searchable catalogue,
+customer and guest checkout, M-Pesa payments, pay on delivery, order tracking,
+invoices, receipts, supplier workflows, stock management, administration,
+role-based access control, and deployment observability.
 
-- Responsive storefront with hero section, search, and category filters.
-- Product details, stock-aware quantities, and a Zustand-persisted cart.
-- M-Pesa STK Push checkout using Daraja sandbox or production credentials.
-- Server-side product, price, stock, phone, quantity, and order-total validation.
-- Token-protected payment-status API; each customer can read only orders linked to their Firebase UID.
-- Customer email/password registration, Google sign-in, password reset, email verification, persistent sessions, profile editing, and order history.
-- Anonymous Firebase guest checkout with account linking so guest orders can be retained after registration.
-- Idempotent M-Pesa callback handling with stock reduction after confirmed payment.
-- Firebase email/password admin login with an `admin: true` custom claim.
-- Product create, edit, delete, visibility, stock, pricing, and image upload tools.
-- Hardened Firestore and Storage rules plus the required Firestore index.
-- Safe Firebase configuration guard so an unconfigured build shows setup guidance
-  rather than crashing during prerendering.
+## Production
+
+- Application: `https://duka-ecommerce-one.vercel.app`
+- Health check: `https://duka-ecommerce-one.vercel.app/api/health`
+- Version metadata: `https://duka-ecommerce-one.vercel.app/api/version`
+
+## Capabilities
+
+### Buyer experience
+
+- Wholesale broiler marketing landing page at `/`.
+- Searchable product catalogue at `/shop`.
+- Product details, stock-aware quantities, and persistent cart state.
+- Email/password, Google, and anonymous Firebase authentication flows.
+- Guest-to-account linking that preserves the Firebase UID and order history.
+- M-Pesa STK Push and pay-on-delivery checkout.
+- Customer order tracking, profiles, order history, invoices, and receipts.
+- Persistent light, dark, and system theme preference.
+- Accessible validation summaries, field errors, inline errors, route errors,
+  and reusable error boundaries.
+
+### Operations and administration
+
+- Protected administrator login and dashboard.
+- Product, price, category, visibility, image, and stock management.
+- Inventory synchronisation and stock-aware fulfilment.
+- Supplier portal and supplier-order workflows.
+- Customer, order, payment, fulfilment, and dispute records.
+- Role-based access for administration, operations, inventory, finance,
+  accounting, support, suppliers, and customers.
+- Firestore deny-by-default rules and server-side Firebase token verification.
+- Health and version endpoints for deployment verification.
+- GitHub Actions validation, semantic versioning, release scripts, and changelog.
 
 ## Technology stack
 
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 15 App Router |
-| UI | React 19, Tailwind CSS 3, Lucide icons |
+| UI | React 19, TypeScript, Tailwind CSS 3, Lucide |
 | Client state | Zustand |
 | Authentication | Firebase Authentication |
 | Database | Cloud Firestore |
-| Product images | Firebase Storage |
-| Payments | Safaricom Daraja STK Push |
+| Storage | Firebase Storage |
+| Payments | Safaricom Daraja M-Pesa |
 | Hosting | Vercel |
-| Language | TypeScript |
+| CI | GitHub Actions |
+| Local security testing | Firebase Emulator Suite |
+| Versioning | Semantic Versioning and Git tags |
+
+## Requirements
+
+- Node.js 24 recommended; Node.js 20.9 or newer is supported.
+- npm.
+- Java 21 for Firebase emulators.
+- Firebase Authentication, Firestore, Storage, and Admin credentials.
+- Safaricom Daraja credentials.
+- Vercel CLI and Git.
 
 ## Project structure
 
 ```text
 src/
-  app/
-    page.tsx                     storefront and filters
-    product/[id]/page.tsx        product detail
-    cart/page.tsx                persistent shopping cart
-    checkout/page.tsx            authenticated/guest M-Pesa checkout
-    login/page.tsx               customer email and Google sign-in
-    register/page.tsx            customer registration and guest linking
-    forgot-password/page.tsx     password reset
-    account/page.tsx             profile, verification, and order history
-    admin/                       protected dashboard and product CRUD
-    api/
-      mpesa/stkpush/route.ts      validates cart and starts STK Push
-      mpesa/callback/route.ts     processes Daraja callback
-      orders/[id]/route.ts        token-protected order status
-  components/                    storefront and admin UI
-  lib/                           Firebase, auth, M-Pesa, types, hooks
-  store/cart-store.ts            cart state
+  app/                            routes, layouts, pages, and APIs
+    page.tsx                      wholesale marketing landing page
+    shop/                         catalogue
+    product/[id]/                 product detail
+    cart/                         cart
+    checkout/                     checkout
+    account/                      customer account and orders
+    settings/                     theme and preferences
+    admin/                        protected administration
+    supplier/                     supplier workflows
+    api/health/                   health endpoint
+    api/version/                  version endpoint
+    api/mpesa/                    M-Pesa integration
+    api/orders/                   protected order APIs
+  components/
+    admin/                        admin UI
+    feedback/                     error and validation UI
+    theme/                        theme provider and controls
+  features/                       domain modules as the app grows
+  lib/
+    firebase.ts                   Firebase client SDK
+    firebaseAdmin.ts              Firebase Admin SDK
+    server/rbac.ts                server authorization guards
+    validation.ts                 validation helpers
+    app-version.ts                deployment metadata
+  store/                          Zustand stores
 scripts/
-  setAdminClaim.mjs              grants admin claim
-  seedProducts.mjs               creates starter general products
-  seedBroilerProducts.mjs         adds broiler chicken variants
+  set-user-role.mjs               assign Firebase roles
+  seedProducts.mjs                seed starter products
+  seedBroilerProducts.mjs         seed broiler products
+  version/                        release scripts
+docs/
+  ARCHITECTURE.md
+  GIT-WORKFLOW.md
+  RBAC-SECURITY.md
+.github/workflows/ci.yml
 firestore.rules
 storage.rules
-firebase.indexes.json
+firebase.json
+VERSION
+CHANGELOG.md
+AGENT.md
 ```
 
-## Requirements
-
-- Node.js 20.9 or newer.
-- A Firebase project with Authentication, Firestore, and Storage enabled.
-- Safaricom Daraja credentials for M-Pesa STK Push.
-- A public HTTPS callback URL for M-Pesa testing.
-
-## 1. Install the project
+## Installation
 
 ```powershell
+cd "C:\DukaDev\duka"
 npm install
-Copy-Item .env.example .env.local
+Copy-Item ".env.example" ".env.local"
 ```
 
-For Bash or Git Bash:
+Never commit `.env.local`, service-account JSON files, private keys, M-Pesa
+credentials, Vercel tokens, or other secrets.
 
-```bash
-npm install
-cp .env.example .env.local
+## Environment variables
+
+### Firebase client
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
 ```
 
-Fill every required value in `.env.local`. Never commit that file.
+### Firebase Admin
 
-## 2. Configure Firebase
-
-1. In Firebase Authentication, enable **Email/Password**, **Google**, and
-   **Anonymous** providers.
-2. Under Authentication → Settings → Authorized domains, include `localhost`
-   for development and your Vercel/custom production domain.
-3. Create a Firestore database and a Firebase Storage bucket.
-4. Create a Firebase Web App and copy its values into the
-   `NEXT_PUBLIC_FIREBASE_*` variables.
-5. Generate a service-account key and add its values to the
-   `FIREBASE_ADMIN_*` variables. Keep these server-only. These credentials are
-   required by checkout, callbacks, and token verification.
-6. Deploy rules and indexes:
-
-```powershell
-npm install --global firebase-tools
-firebase login
-firebase use --add
-firebase deploy --only firestore:rules,firestore:indexes,storage
+```env
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
 ```
 
-Create an administrator in Firebase Authentication, then grant the custom claim:
+### M-Pesa
 
-```powershell
-npm run set-admin -- admin@example.com
+```env
+MPESA_ENV=sandbox
+MPESA_CONSUMER_KEY=
+MPESA_CONSUMER_SECRET=
+MPESA_SHORTCODE=
+MPESA_PASSKEY=
+MPESA_CALLBACK_URL=
 ```
 
-The administrator must sign out and sign in again before the claim is available.
+### Storefront
 
-Optionally seed the six general starter products:
-
-```powershell
-npm run seed
+```env
+NEXT_PUBLIC_STORE_PHONE=
+NEXT_PUBLIC_STORE_EMAIL=
+NEXT_PUBLIC_WHATSAPP_NUMBER=
 ```
 
-Add the broiler chicken catalogue without deleting existing products:
+### Local emulator only
 
-```powershell
-npm run seed:broilers
+```env
+NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true
 ```
 
-The broiler seed adds whole-bird weight variants, common cuts, offal, and value
-packs with local starter artwork. Prices and stock are starter values; review
-them from `/admin/products` before production deployment. Any product image can
-be replaced through the admin dashboard.
+Do not add the emulator variable to Vercel Production.
 
-## 3. Configure M-Pesa Daraja
+## Firebase setup
 
-Use Daraja sandbox credentials first:
+Enable the required Authentication providers:
 
-- `MPESA_ENV=sandbox`
-- `MPESA_CONSUMER_KEY`
-- `MPESA_CONSUMER_SECRET`
-- `MPESA_SHORTCODE=174379` for the standard sandbox flow
-- `MPESA_PASSKEY`
-- `MPESA_CALLBACK_URL=https://your-public-domain/api/mpesa/callback`
+- Email/Password
+- Google
+- Anonymous
 
-Safaricom cannot call `localhost`. For local testing, expose port 3000 through an
-HTTPS tunnel and place that public URL in `MPESA_CALLBACK_URL`.
+Add `localhost` and all production domains to Authentication authorized domains.
+Create Firestore and Storage, configure the client values, and keep Admin values
+server-only.
 
-```powershell
-ngrok http 3000
-```
-
-For production, replace the sandbox credentials, shortcode, passkey, and callback
-URL with the values approved for your paybill or till.
-
-## 4. Run locally
+## Run locally
 
 ```powershell
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Use the exact port printed by Next.js.
 
-Useful routes:
+| Route | Purpose |
+|---|---|
+| `/` | Wholesale landing page |
+| `/shop` | Catalogue |
+| `/cart` | Cart |
+| `/checkout` | Checkout |
+| `/login` | Customer login |
+| `/register` | Registration |
+| `/account` | Account and order history |
+| `/settings` | Theme settings |
+| `/admin/login` | Administrator login |
+| `/admin` | Administration |
+| `/api/health` | Health check |
+| `/api/version` | Version metadata |
 
-- `/` — storefront
-- `/cart` — shopping cart
-- `/checkout` — M-Pesa checkout with signed-in or anonymous guest identity
-- `/login` — customer sign-in
-- `/register` — customer registration
-- `/forgot-password` — password reset
-- `/account` — profile, email verification, sign-out, and order history
-- `/admin/login` — administrator sign-in
-- `/admin/products` — product management
+## Firestore emulator
 
-## 5. Validate before deployment
+The project uses an isolated port range because local Apache uses port 8080:
+
+```text
+Firestore: 127.0.0.1:8185
+Emulator UI: http://127.0.0.1:4100
+Hub: 127.0.0.1:4505
+Logging: 127.0.0.1:4600
+```
+
+Start it:
 
 ```powershell
-npm run check
+npm run rules:emulator
+```
+
+In a second PowerShell window:
+
+```powershell
+cd "C:\DukaDev\duka"
+$env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8185"
+$env:NEXT_PUBLIC_USE_FIREBASE_EMULATOR = "true"
+npm run dev
+```
+
+The Firestore emulator does not automatically emulate Firebase Authentication.
+Unless Auth is explicitly connected to an Auth emulator, login uses the
+configured Firebase project.
+
+## RBAC
+
+| Role | Access focus |
+|---|---|
+| `admin` | Full administration |
+| `operations` | Orders, suppliers, and operations |
+| `order_manager` | Order administration |
+| `inventory_manager` | Products and inventory |
+| `finance` | Payments and finance |
+| `accountant` | Reconciliation |
+| `support` | Customers, orders, and disputes |
+| `supplier` | Own supplier records |
+| `customer` | Own profile and commerce records |
+
+Assign a role from a trusted administrator workstation:
+
+```powershell
+npm run rbac:set-role -- user@example.com inventory_manager
+```
+
+The user must sign out and sign in again after custom claims change.
+
+Firestore client rules and server authorization are separate. Firebase Admin
+bypasses Firestore Security Rules, so protected APIs using Admin SDK must call a
+guard from `src/lib/server/rbac.ts`.
+
+## Validation and build
+
+```powershell
+npm run validate
+```
+
+Equivalent checks:
+
+```powershell
+npm run lint
+npm run typecheck
 npm run build
 ```
 
-`npm run check` runs ESLint and strict TypeScript checking.
+## Common scripts
 
-For payment changes, test all three paths with Daraja sandbox:
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Local development |
+| `npm run build` | Production build |
+| `npm run start` | Run production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript |
+| `npm run validate` | Lint, typecheck, and build |
+| `npm run seed` | Seed starter products |
+| `npm run seed:broilers` | Seed broiler products |
+| `npm run rbac:set-role -- <email> <role>` | Assign role |
+| `npm run rules:emulator` | Start Firestore emulator |
+| `npm run rules:deploy` | Deploy Firestore rules |
+| `npm run version:show` | Show version |
+| `npm run release:patch` | Prepare patch release |
+| `npm run release:minor` | Prepare minor release |
+| `npm run release:major` | Prepare major release |
 
-1. Successful STK approval: order becomes `paid`, receipt is stored, stock reduces.
-2. Rejected or cancelled prompt: order becomes `failed`.
-3. Timeout/no response: checkout stops waiting and tells the customer to verify
-   their M-Pesa messages before retrying.
+## Git workflow
 
-## 6. Deploy to Vercel
+Do not develop substantial changes directly on `main`.
 
 ```powershell
-npm install --global vercel
-vercel
-vercel --prod
+git switch main
+git pull --ff-only origin main
+git switch -c feature/short-description
 ```
 
-Add every variable from `.env.example` to Vercel Environment Variables. Set the
-live callback to:
+Stage explicit files. Do not use `git add .`.
 
-```text
-https://your-domain/api/mpesa/callback
+```powershell
+git add src/app/example/page.tsx src/components/Example.tsx
+git diff --cached --check
+git diff --cached --stat
+git commit -m "feat: add example capability"
+git push -u origin feature/short-description
 ```
 
-Redeploy after changing environment variables.
+Supported prefixes: `feat:`, `fix:`, `security:`, `refactor:`, `perf:`,
+`test:`, `docs:`, `chore:`, and `release:`.
 
-## Checkout security model
+## Releases
 
-The browser submits only product IDs and quantities. The server loads current
-products from Firestore, rejects inactive or insufficient-stock items, and
-recalculates the total before sending the M-Pesa prompt. A random status token is
-returned once and only its SHA-256 hash is stored with the order. Checkout uses
-that token through `/api/orders/[id]` while it waits for the M-Pesa result.
+```powershell
+npm run release:patch
+npm run release:minor
+npm run release:major
+```
 
-Every checkout also sends a Firebase ID token. Signed-in customers use their
-normal UID; guests receive an anonymous Firebase UID. The server verifies that
-token before storing `userId` on the order. Firestore rules allow customers to
-read only documents where `order.userId == request.auth.uid`; writes remain
-server/admin controlled. Linking an anonymous user to a new email or Google
-credential preserves the same UID and therefore preserves guest order history.
+Review `CHANGELOG.md`, commit the prepared version, create the annotated tag,
+and push using the instructions printed by the release script.
 
-M-Pesa PINs never enter this application. PIN entry occurs entirely on the
-customer's handset.
+## Deployment
 
-## Recommended production additions
+Firestore rules and Vercel deploy separately.
 
-Before high-volume use, add request rate limiting, order reservation/release for
-competing checkouts, delivery-address and fulfilment workflows, receipt messages,
-observability, and automated integration tests against Daraja sandbox.
+Test rules in the emulator, then:
+
+```powershell
+npm run rules:deploy
+```
+
+Validate and deploy a preview:
+
+```powershell
+npm run validate
+npx vercel deploy --logs
+```
+
+Deploy production:
+
+```powershell
+npx vercel deploy --prod --logs
+```
+
+Verify `/`, `/shop`, `/admin/login`, `/api/health`, and `/api/version`.
+
+## Security principles
+
+- Never expose Firebase Admin credentials to client code.
+- Never commit secrets or service-account JSON files.
+- Verify Firebase ID tokens on protected APIs.
+- Never trust role, price, stock, total, payment status, or UID from the client.
+- Keep payment, invoice, inventory-movement, and audit writes server-only.
+- Recalculate prices and totals server-side.
+- Use idempotency for payments and order creation.
+- Use Firestore transactions for stock changes.
+- Restrict customer queries by verified ownership.
+- Record privileged changes with actor UID and timestamps.
+- Rotate exposed credentials.
+
+## Release verification
+
+A release is complete only when:
+
+1. `npm run validate` passes.
+2. Firestore rules pass emulator tests.
+3. Vercel Production variables are complete.
+4. No emulator variables exist in Production.
+5. `/api/health` reports healthy.
+6. `/api/version` reports the expected version and commit.
+7. Customer and admin login work.
+8. Product browsing, checkout, and tracking work.
+9. Firestore and Vercel logs show no new critical errors.
