@@ -1,29 +1,116 @@
 ﻿import type { Metadata } from "next";
 import "./globals.css";
+
 import Navbar from "@/components/Navbar";
-import { AuthProvider } from "@/lib/auth-context";
 import InventorySyncProvider from "@/components/InventorySyncProvider";
+import OrganizationJsonLd from "@/components/seo/OrganizationJsonLd";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import ThemeScript from "@/components/theme/ThemeScript";
+import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      "https://duka-ecommerce-one.vercel.app"
+  ),
+
   title: {
-    default: "Duka Broilers | Wholesale Fresh Chicken",
-    template: "%s | Duka",
+    default: "Duka Broilers | Fresh Wholesale Chicken in Kenya",
+    template: "%s | Duka Broilers",
   },
+
   description:
-    "Wholesale broiler chicken supply for hotels, restaurants, supermarkets, vendors, hospitals and institutions across Kenya.",
+    "Order fresh wholesale broiler chicken for hotels, restaurants, supermarkets, caterers, vendors and institutions across Kenya.",
+
+  keywords: [
+    "wholesale chicken Kenya",
+    "fresh broiler chicken",
+    "broiler suppliers Kenya",
+    "chicken suppliers Nairobi",
+    "bulk chicken Kenya",
+    "poultry supplier Kenya",
+    "restaurant chicken supplier",
+    "hotel chicken supplier",
+    "Duka Broilers",
+  ],
+
+  authors: [
+    {
+      name: "Duka Broilers",
+    },
+  ],
+
+  creator: "Duka Broilers",
+  publisher: "Duka Broilers",
+  applicationName: "Duka Broilers",
+  category: "Food and Beverage",
+
+  alternates: {
+    canonical: "/",
+  },
+
+  openGraph: {
+    type: "website",
+    locale: "en_KE",
+    url: "/",
+    siteName: "Duka Broilers",
+    title: "Duka Broilers | Fresh Wholesale Chicken in Kenya",
+    description:
+      "Reliable fresh broiler chicken supply for businesses and institutions across Kenya.",
+    images: [
+      {
+        url: "/images/duka-broilers-hero.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Fresh broiler chickens supplied by Duka Broilers",
+      },
+    ],
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "Duka Broilers | Fresh Wholesale Chicken in Kenya",
+    description:
+      "Fresh wholesale broiler chicken for hotels, restaurants, supermarkets and institutions across Kenya.",
+    images: ["/images/duka-broilers-hero.jpg"],
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+
+  other: {
+    "geo.region": "KE",
+    "geo.placename": "Kenya",
+  },
 };
+
+type RootLayoutProps = Readonly<{
+  children: React.ReactNode;
+}>;
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: RootLayoutProps): React.ReactElement {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en-KE" suppressHydrationWarning>
       <head>
         <ThemeScript />
+        <OrganizationJsonLd />
       </head>
 
       <body>
@@ -42,6 +129,7 @@ export default function RootLayout({
                     © {new Date().getFullYear()} Duka Broilers. Wholesale
                     fresh chicken for business.
                   </p>
+
                   <p>Wholesale prices are shown in Kenyan shillings.</p>
                 </div>
               </footer>
