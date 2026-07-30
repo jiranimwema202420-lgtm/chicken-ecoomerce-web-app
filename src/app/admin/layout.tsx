@@ -4,11 +4,20 @@ import { usePathname } from "next/navigation";
 import RequireAdmin from "@/components/admin/RequireAdmin";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
-  const isLoginPage = pathname === "/admin/login";
 
-  if (isLoginPage) return <>{children}</>;
+  const isPublicAdminRoute =
+    pathname === "/admin/login" ||
+    pathname.startsWith("/admin/login/");
+
+  if (isPublicAdminRoute) {
+    return <>{children}</>;
+  }
 
   return (
     <RequireAdmin>

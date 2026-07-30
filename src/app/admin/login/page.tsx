@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
       const credential = await signInWithEmailAndPassword(auth, email, password);
       const tokenResult = await credential.user.getIdTokenResult(true);
 
-      if (tokenResult.claims.admin !== true) {
+      if (tokenResult.claims.admin !== true && tokenResult.claims.role !== "admin") {
         await signOut(auth);
         setError("This account does not have administrator access.");
         return;
@@ -84,7 +84,7 @@ export default function AdminLoginPage() {
             <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700">{error}</p>
           )}
           <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Signing inâ€¦" : "Sign in"}
           </button>
         </form>
       </div>
