@@ -1,52 +1,66 @@
-import { getApps, initializeApp, cert, App } from "firebase-admin/app";
-import { getFirestore, Firestore } from "firebase-admin/firestore";
-import { getAuth, Auth } from "firebase-admin/auth";
+import {
+  cert,
+  getApp,
+  getApps,
+  initializeApp,
+  type ServiceAccount,
+} from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 
-let app: App | undefined;
+interface FirebaseServiceAccountJson {
+  project_id?: unknown;
+  client_email?: unknown;
+  private_key?: unknown;
+}
 
-/** Lazily builds the Admin app on first use, not at module import time —
- * keeps `next build` working even before secrets are configured. */
-function getAdminApp(): App {
-  if (app) return app;
-  if (getApps().length) {
-    app = getApps()[0];
-    return app;
+function loadServiceAccount(): ServiceAccount {
+  const encoded =
+    process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_BASE64?.trim();
+
+  if (!encoded) {
+    throw new Error(
+      "Missing required environment variable: FIREBASE_ADMIN_SERVICE_ACCOUNT_BASE64"
+    );
   }
 
-  app = initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      // Vercel env vars store literal "\n" — convert back to real newlines.
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
-  return app;
+  let parsed: FirebaseServiceAccountJson;
+
+  try {
+    const decoded = Buffer.from(encoded, "base64").toString("utf8");
+    parsed = JSON.parse(decoded) as FirebaseServiceAccountJson;
+  } catch {
+    throw new Error(
+      "FIREBASE_ADMIN_SERVICE_ACCOUNT_BASE64 is not valid base64 JSON."
+    );
+  }
+
+  if (
+    typeof parsed.project_id !== "string" ||
+    typeof parsed.client_email !== "string" ||
+    typeof parsed.private_key !== "string"
+  ) {
+    throw new Error(
+      "Firebase service account must contain project_id, client_email, and private_key."
+    );
+  }
+
+  return {
+    projectId: parsed.project_id,
+    clientEmail: parsed.client_email,
+    privateKey: parsed.private_key,
+  };
 }
 
-export function getAdminDb(): Firestore {
-  return getFirestore(getAdminApp());
-}
+const serviceAccount = loadServiceAccount();
 
-export function getAdminAuth(): Auth {
-  return getAuth(getAdminApp());
-}
+const adminApp =
+  getApps().length > 0
+    ? getApp()
+    : initializeApp({
+        credential: cert(serviceAccount),
+        projectId: serviceAccount.projectId,
+      });
 
-// Convenience proxies so call sites can keep writing `adminDb.collection(...)`
-// without invoking a function first. Each property access lazily resolves
-// the real Firestore/Auth instance.
-export const adminDb = new Proxy({} as Firestore, {
-  get(_target, prop) {
-    const instance = getAdminDb() as unknown as Record<string, unknown>;
-    const value = instance[prop as string];
-    return typeof value === "function" ? value.bind(instance) : value;
-  },
-});
-
-export const adminAuth = new Proxy({} as Auth, {
-  get(_target, prop) {
-    const instance = getAdminAuth() as unknown as Record<string, unknown>;
-    const value = instance[prop as string];
-    return typeof value === "function" ? value.bind(instance) : value;
-  },
-});
+export const adminDb = getFirestore(adminApp);
+export const adminAuth = getAuth(adminApp);

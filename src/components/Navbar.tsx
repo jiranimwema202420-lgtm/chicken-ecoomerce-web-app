@@ -6,6 +6,7 @@ import {
   LogIn,
   Menu,
   ShieldCheck,
+  Settings,
   ShoppingBag,
   Store,
   UserPlus,
@@ -15,6 +16,7 @@ import {
 import { useState } from "react";
 import { useCartStore } from "@/store/cart-store";
 import { useAuth } from "@/lib/auth-context";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -97,6 +99,19 @@ export default function Navbar() {
               <ShieldCheck size={17} /> Admin
             </Link>
           )}
+
+          <div className="flex items-center gap-1">
+            <Link
+              href="/settings"
+              className="btn-ghost gap-2"
+              onClick={closeMenu}
+              aria-label="Open settings"
+            >
+              <Settings size={18} />
+              <span className="md:hidden xl:inline">Settings</span>
+            </Link>
+            <ThemeToggle />
+          </div>
 
           <Link href="/cart" className="btn-primary relative gap-2 px-4" onClick={closeMenu}>
             <ShoppingBag size={18} /> Cart

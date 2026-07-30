@@ -1,0 +1,7 @@
+# Require review for critical application areas.
+* @jiranimwema202420-lgtm
+
+/src/app/api/ @jiranimwema202420-lgtm
+/src/lib/firebaseAdmin.ts @jiranimwema202420-lgtm
+/firestore.rules @jiranimwema202420-lgtm
+/.github/workflows/ @jiranimwema202420-lgtm

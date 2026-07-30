@@ -14,7 +14,8 @@
     "check": "npm run lint && npm run typecheck",
     "typecheck": "tsc --noEmit",
     "seed": "node scripts/seedProducts.mjs",
-    "seed:broilers": "node scripts/seedBroilerProducts.mjs"
+    "seed:broilers": "node scripts/seedBroilerProducts.mjs",
+    "validate": "npm run check && npm run build"
   },
   "dependencies": {
     "axios": "^1.7.9",
