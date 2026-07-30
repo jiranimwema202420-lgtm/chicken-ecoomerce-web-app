@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -356,6 +356,7 @@ export default function ProductForm({ product }: Props) {
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">Preview</p>
             <div className="aspect-[4/3] w-full max-w-xs overflow-hidden rounded-lg border border-line bg-line">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 key={previewUrl}
                 src={previewUrl}

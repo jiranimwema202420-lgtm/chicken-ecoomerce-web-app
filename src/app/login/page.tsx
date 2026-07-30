@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { LogIn,
   Mail } from "lucide-react";
 import {
-  GoogleAuthProvider,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
@@ -148,7 +147,7 @@ export default function CustomerLoginPage() {
           )}
 
           <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? "Signing inÃ¢â‚¬Â¦" : "Sign in"}
+            {loading ? "Signing inÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : "Sign in"}
           </button>
         </form>
 

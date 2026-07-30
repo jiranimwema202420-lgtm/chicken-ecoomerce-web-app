@@ -85,29 +85,6 @@ const buyerSegments = [
   },
 ];
 
-const benefits = [
-  {
-    icon: BadgeCheck,
-    title: "Consistent quality",
-    text: "Broilers selected and prepared to support dependable portioning and menu planning.",
-  },
-  {
-    icon: Scale,
-    title: "Wholesale savings",
-    text: "Bulk pricing helps commercial buyers lower food costs and improve margins.",
-  },
-  {
-    icon: Truck,
-    title: "Reliable fulfilment",
-    text: "Order tracking, stock visibility and delivery coordination keep operations moving.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Transparent records",
-    text: "Invoices, receipts, order history and payment records are available in one place.",
-  },
-];
-
 const reviewHighlights = [
   {
     quote:
