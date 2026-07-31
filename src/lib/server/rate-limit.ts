@@ -1,16 +1,52 @@
+import "server-only";
+
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+function normalizeEnvironmentValue(value: string): string {
+  return value
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/^UPSTASH_REDIS_REST_URL=/, "")
+    .trim();
+}
 
-const redis =
-  redisUrl && redisToken
-    ? new Redis({
-        url: redisUrl,
-        token: redisToken,
-      })
-    : null;
+function createRedisClient(): Redis | null {
+  const rawUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const rawToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!rawUrl || !rawToken) {
+    return null;
+  }
+
+  const redisUrl = normalizeEnvironmentValue(rawUrl);
+  const redisToken = rawToken.trim().replace(/^["']|["']$/g, "");
+
+  try {
+    const parsedUrl = new URL(redisUrl);
+
+    if (parsedUrl.protocol !== "https:") {
+      console.error(
+        "Upstash rate limiting disabled: REST URL must use HTTPS.",
+      );
+
+      return null;
+    }
+
+    return new Redis({
+      url: parsedUrl.origin,
+      token: redisToken,
+    });
+  } catch {
+    console.error(
+      "Upstash rate limiting disabled: REST URL is invalid.",
+    );
+
+    return null;
+  }
+}
+
+const redis = createRedisClient();
 
 export const publicApiRateLimit = redis
   ? new Ratelimit({
