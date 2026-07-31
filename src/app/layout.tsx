@@ -1,7 +1,8 @@
-﻿import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 import Navbar from "@/components/Navbar";
+import PwaRegistration from "@/components/pwa/PwaRegistration";
 import InventorySyncProvider from "@/components/InventorySyncProvider";
 import OrganizationJsonLd from "@/components/seo/OrganizationJsonLd";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
@@ -43,6 +44,12 @@ export const metadata: Metadata = {
   creator: "Duka Broilers",
   publisher: "Duka Broilers",
   applicationName: "Duka Broilers",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Duka Broilers",
+  },
   category: "Food and Beverage",
 
   alternates: {
@@ -99,6 +106,15 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7faf7" },
+    { media: "(prefers-color-scheme: dark)", color: "#102419" },
+  ],
+  colorScheme: "light dark",
+  width: "device-width",
+  initialScale: 1,
+};
 type RootLayoutProps = Readonly<{
   children: React.ReactNode;
 }>;
@@ -114,6 +130,7 @@ export default function RootLayout({
       </head>
 
       <body>
+        <PwaRegistration />
         <ThemeProvider>
           <AuthProvider>
             <InventorySyncProvider>
