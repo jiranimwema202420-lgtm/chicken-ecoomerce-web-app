@@ -23,6 +23,8 @@ import {
   UsersRound,
 } from "lucide-react";
 
+import OrganizationJsonLd from "@/components/seo/OrganizationJsonLd";
+
 export const metadata: Metadata = {
   title: "Wholesale Broiler Chickens in Kenya",
   description:
@@ -36,7 +38,11 @@ export const metadata: Metadata = {
     "supermarket chicken supplier",
     "institutional poultry supplier",
   ],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
+    url: "/",
     title: "Duka Broilers | Wholesale Fresh Chicken",
     description:
       "Fresh broiler chickens at wholesale prices for businesses and institutions across Kenya.",
@@ -165,6 +171,7 @@ export default function LandingPage() {
 
   return (
     <div className="overflow-hidden bg-[#f8faf7] text-ink">
+      <OrganizationJsonLd />
 
       <section className="relative overflow-hidden border-b border-[#173d2a] bg-[#071d13] text-white">
         <div aria-hidden="true" className="absolute inset-0 opacity-70" style={{backgroundImage:"radial-gradient(circle at 8% 12%, rgba(226,167,62,0.18), transparent 24rem), radial-gradient(circle at 88% 82%, rgba(22,107,78,0.28), transparent 28rem)"}} />

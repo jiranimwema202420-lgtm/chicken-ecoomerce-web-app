@@ -4,7 +4,6 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import PwaRegistration from "@/components/pwa/PwaRegistration";
 import InventorySyncProvider from "@/components/InventorySyncProvider";
-import OrganizationJsonLd from "@/components/seo/OrganizationJsonLd";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import ThemeScript from "@/components/theme/ThemeScript";
 import { AuthProvider } from "@/lib/auth-context";
@@ -52,14 +51,10 @@ export const metadata: Metadata = {
   },
   category: "Food and Beverage",
 
-  alternates: {
-    canonical: "/",
-  },
 
   openGraph: {
     type: "website",
     locale: "en_KE",
-    url: "/",
     siteName: "Duka Broilers",
     title: "Duka Broilers | Fresh Wholesale Chicken in Kenya",
     description:
@@ -126,7 +121,6 @@ export default function RootLayout({
     <html lang="en-KE" suppressHydrationWarning>
       <head>
         <ThemeScript />
-        <OrganizationJsonLd />
       </head>
 
       <body>

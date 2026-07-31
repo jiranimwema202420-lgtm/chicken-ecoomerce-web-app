@@ -1,36 +1,64 @@
-﻿import type { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
 
-const siteUrl =
+import { getPublicProducts } from "@/lib/server/public-products";
+
+const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL ??
-  "https://duka-ecommerce-one.vercel.app";
+  "https://duka-ecommerce-one.vercel.app"
+).replace(/\/$/, "");
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
+export const revalidate = 300;
 
-  return [
+function absoluteImageUrl(value: string): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value).toString();
+  } catch {
+    return new URL(value.startsWith("/") ? value : `/${value}`, siteUrl).toString();
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: siteUrl,
-      lastModified,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${siteUrl}/shop`,
-      lastModified,
       changeFrequency: "daily",
       priority: 0.9,
     },
-    {
-      url: `${siteUrl}/about`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${siteUrl}/contact`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
   ];
+
+  try {
+    const products = await getPublicProducts();
+    const productRoutes: MetadataRoute.Sitemap = products.map((product) => {
+      const image = absoluteImageUrl(product.imageUrl);
+      const route: MetadataRoute.Sitemap[number] = {
+        url: `${siteUrl}/product/${product.id}`,
+        changeFrequency: "daily",
+        priority: 0.8,
+      };
+
+      if (product.updatedAt > 0) {
+        route.lastModified = new Date(product.updatedAt);
+      }
+
+      if (image) {
+        route.images = [image];
+      }
+
+      return route;
+    });
+
+    return [...staticRoutes, ...productRoutes];
+  } catch (error) {
+    console.error("Product sitemap generation failed:", error);
+    return staticRoutes;
+  }
 }

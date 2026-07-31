@@ -24,7 +24,31 @@ const SUSPICIOUS_PATH_PATTERNS = [
   /server-status/i,
 ];
 
-function securityHeaders(response: NextResponse): NextResponse {
+const NOINDEX_PATH_PREFIXES = [
+  "/account",
+  "/admin",
+  "/api",
+  "/cart",
+  "/checkout",
+  "/forgot-password",
+  "/login",
+  "/offline",
+  "/orders",
+  "/register",
+  "/settings",
+  "/supplier",
+];
+
+function shouldNoIndex(pathname: string): boolean {
+  return NOINDEX_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+function securityHeaders(
+  response: NextResponse,
+  pathname: string,
+): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -32,6 +56,13 @@ function securityHeaders(response: NextResponse): NextResponse {
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
   );
+
+  if (shouldNoIndex(pathname)) {
+    response.headers.set(
+      "X-Robots-Tag",
+      "noindex, nofollow, noarchive, nosnippet",
+    );
+  }
 
   return response;
 }
@@ -49,17 +80,20 @@ export function middleware(request: NextRequest): NextResponse {
   );
 
   if (blockedUserAgent || suspiciousPath) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Request blocked",
-      },
-      {
-        status: 403,
-        headers: {
-          "Cache-Control": "no-store",
+    return securityHeaders(
+      NextResponse.json(
+        {
+          success: false,
+          error: "Request blocked",
         },
-      },
+        {
+          status: 403,
+          headers: {
+            "Cache-Control": "no-store",
+          },
+        },
+      ),
+      pathname,
     );
   }
 
@@ -69,18 +103,21 @@ export function middleware(request: NextRequest): NextResponse {
     ["POST", "PUT", "PATCH"].includes(request.method) &&
     contentLength > 1_000_000
   ) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Request body is too large",
-      },
-      {
-        status: 413,
-      },
+    return securityHeaders(
+      NextResponse.json(
+        {
+          success: false,
+          error: "Request body is too large",
+        },
+        {
+          status: 413,
+        },
+      ),
+      pathname,
     );
   }
 
-  return securityHeaders(NextResponse.next());
+  return securityHeaders(NextResponse.next(), pathname);
 }
 
 export const config = {

@@ -1,30 +1,20 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://duka-ecommerce-one.vercel.app";
+const siteUrl = (
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  "https://duka-ecommerce-one.vercel.app"
+).replace(/\/$/, "");
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/shop", "/products"],
-        disallow: [
-          "/admin/",
-          "/account/",
-          "/checkout/",
-          "/cart/",
-          "/orders/",
-          "/supplier/",
-          "/api/",
-          "/login",
-          "/register",
-          "/forgot-password",
-        ],
+        allow: "/",
+        disallow: ["/api/"],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
     host: siteUrl,
   };
 }
-
