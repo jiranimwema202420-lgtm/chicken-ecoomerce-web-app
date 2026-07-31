@@ -175,6 +175,44 @@ Useful routes:
 - `/admin/login` — administrator sign-in
 - `/admin/products` — product management
 
+## Local Firestore emulator
+
+The project uses the Firestore rules defined in `firestore.rules` and the local
+ports documented in `AGENT.md`.
+
+Install and authenticate the Firebase CLI once, then start Firestore locally:
+
+```powershell
+npm install --global firebase-tools
+firebase login
+npm run rules:emulator
+```
+
+In a second PowerShell window, direct the application to the emulator:
+
+```powershell
+$env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8185"
+$env:NEXT_PUBLIC_USE_FIREBASE_EMULATOR = "true"
+npm run dev
+```
+
+The Firestore emulator does not copy Firebase Authentication users. Authentication
+remains connected to the configured Firebase project unless an Authentication
+emulator is explicitly added.
+
+Version helpers are available for controlled release preparation:
+
+```powershell
+npm run version:show
+npm run release:patch
+npm run release:minor
+npm run release:major
+```
+
+The release commands update `package.json` and `package-lock.json` without
+creating a Git tag or commit. Review the diff, update `CHANGELOG.md`, run
+`npm run validate`, and commit explicit files.
+
 ## 5. Validate before deployment
 
 ```powershell
@@ -182,7 +220,7 @@ npm run check
 npm run build
 ```
 
-`npm run check` runs ESLint and strict TypeScript checking.
+`npm run validate` runs ESLint, strict TypeScript checking, and the production build.
 
 For payment changes, test all three paths with Daraja sandbox:
 

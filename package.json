@@ -15,9 +15,16 @@
     "typecheck": "tsc --noEmit",
     "seed": "node scripts/seedProducts.mjs",
     "seed:broilers": "node scripts/seedBroilerProducts.mjs",
-    "validate": "npm run check && npm run build"
+    "validate": "npm run check && npm run build",
+    "rules:emulator": "firebase emulators:start --only firestore",
+    "version:show": "node -p \"require('./package.json').version\"",
+    "release:patch": "npm version patch --no-git-tag-version",
+    "release:minor": "npm version minor --no-git-tag-version",
+    "release:major": "npm version major --no-git-tag-version"
   },
   "dependencies": {
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
     "firebase": "^11.1.0",

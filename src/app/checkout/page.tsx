@@ -18,16 +18,17 @@ import {
   XCircle,
 } from "lucide-react";
 import { signInAnonymously } from "firebase/auth";
+
 import PaymentMethodSelector, {
   type CheckoutPaymentMethod,
 } from "@/components/checkout/PaymentMethodSelector";
-import { useCartStore } from "@/store/cart-store";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { useAuth } from "@/lib/auth-context";
 import {
   auth,
   isFirebaseConfigured,
 } from "@/lib/firebase";
-import { getAuthErrorMessage } from "@/lib/auth-errors";
+import { useCartStore } from "@/store/cart-store";
 
 type Step = "form" | "waiting" | "success" | "error";
 
@@ -43,27 +44,52 @@ interface OrderStatusResponse {
   resultDescription: string | null;
 }
 
-const sleep = (milliseconds: number) =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds));
+interface MpesaCheckoutResponse {
+  error?: string;
+  total: number;
+  customerMessage?: string;
+  orderId: string;
+  statusToken: string;
+}
 
-export default function CheckoutPage() {
+interface PayOnDeliveryResponse {
+  error?: string;
+  total: number;
+  orderNumber?: string;
+  message?: string;
+}
+
+const sleep = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+
+export default function CheckoutPage(): React.ReactElement {
   const { lines, total, clear } = useCartStore();
+
   const {
     user,
     isGuest,
     loading: authLoading,
   } = useAuth();
+
   const [paymentMethod, setPaymentMethod] =
     useState<CheckoutPaymentMethod>("mpesa");
+
   const [phone, setPhone] = useState("");
   const [deliveryName, setDeliveryName] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
+
+  // Honeypot field. Real customers should never complete this field.
+  const [companyWebsite, setCompanyWebsite] = useState("");
+
   const [orderNumber, setOrderNumber] = useState("");
   const [step, setStep] = useState<Step>("form");
   const [message, setMessage] = useState("");
   const [verifiedTotal, setVerifiedTotal] =
     useState<number | null>(null);
+
   const cancelledRef = useRef(false);
 
   useEffect(() => {
@@ -80,24 +106,34 @@ export default function CheckoutPage() {
     }
   }, [deliveryName, user]);
 
-  async function getCheckoutIdentity() {
+  async function getCheckoutIdentity(): Promise<{
+    idToken: string;
+  }> {
     if (!isFirebaseConfigured) {
-      throw new Error("Firebase is not configured for checkout.");
+      throw new Error(
+        "Firebase is not configured for checkout."
+      );
     }
 
     const checkoutUser =
-      auth.currentUser ?? (await signInAnonymously(auth)).user;
+      auth.currentUser ??
+      (await signInAnonymously(auth)).user;
+
     const idToken = await checkoutUser.getIdToken();
 
-    return { checkoutUser, idToken };
+    return {
+      idToken,
+    };
   }
 
   async function pollOrder(
     orderId: string,
     statusToken: string
-  ) {
+  ): Promise<void> {
     for (let attempt = 0; attempt < 45; attempt += 1) {
-      if (cancelledRef.current) return;
+      if (cancelledRef.current) {
+        return;
+      }
 
       await sleep(attempt === 0 ? 1_500 : 2_000);
 
@@ -105,7 +141,9 @@ export default function CheckoutPage() {
         `/api/orders/${encodeURIComponent(
           orderId
         )}?token=${encodeURIComponent(statusToken)}`,
-        { cache: "no-store" }
+        {
+          cache: "no-store",
+        }
       );
 
       if (!response.ok) {
@@ -121,11 +159,13 @@ export default function CheckoutPage() {
         clear();
         setVerifiedTotal(order.total);
         setStep("success");
+
         setMessage(
           order.mpesaReceiptNumber
             ? `Payment received. M-Pesa receipt: ${order.mpesaReceiptNumber}`
             : "Payment received successfully."
         );
+
         return;
       }
 
@@ -134,15 +174,18 @@ export default function CheckoutPage() {
         order.status === "cancelled"
       ) {
         setStep("error");
+
         setMessage(
           order.resultDescription ||
             "The payment was not completed. You can try again."
         );
+
         return;
       }
     }
 
     setStep("error");
+
     setMessage(
       "The M-Pesa confirmation took too long. Check your phone or M-Pesa messages before trying again."
     );
@@ -150,9 +193,11 @@ export default function CheckoutPage() {
 
   async function handleCheckout(
     event: FormEvent<HTMLFormElement>
-  ) {
+  ): Promise<void> {
     event.preventDefault();
+
     setStep("waiting");
+
     setMessage(
       paymentMethod === "mpesa"
         ? "Sending an M-Pesa prompt to your phone..."
@@ -163,34 +208,47 @@ export default function CheckoutPage() {
       const { idToken } = await getCheckoutIdentity();
 
       if (paymentMethod === "mpesa") {
-        const response = await fetch("/api/mpesa/stkpush", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            phone,
-            lines: lines.map((line) => ({
-              productId: line.productId,
-              quantity: line.quantity,
-            })),
-          }),
-        });
-        const data = await response.json();
+        const response = await fetch(
+          "/api/mpesa/stkpush",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              phone,
+              companyWebsite,
+              lines: lines.map((line) => ({
+                productId: line.productId,
+                quantity: line.quantity,
+              })),
+            }),
+          }
+        );
+
+        const data =
+          (await response.json()) as MpesaCheckoutResponse;
 
         if (!response.ok) {
           throw new Error(
-            data.error || "Payment could not be started."
+            data.error ||
+              "Payment could not be started."
           );
         }
 
         setVerifiedTotal(Number(data.total));
+
         setMessage(
           data.customerMessage ||
             "Check your phone and enter your M-Pesa PIN to complete payment."
         );
-        await pollOrder(data.orderId, data.statusToken);
+
+        await pollOrder(
+          data.orderId,
+          data.statusToken
+        );
+
         return;
       }
 
@@ -207,6 +265,7 @@ export default function CheckoutPage() {
             deliveryName,
             deliveryAddress,
             deliveryNotes,
+            companyWebsite,
             lines: lines.map((line) => ({
               productId: line.productId,
               quantity: line.quantity,
@@ -214,7 +273,9 @@ export default function CheckoutPage() {
           }),
         }
       );
-      const data = await response.json();
+
+      const data =
+        (await response.json()) as PayOnDeliveryResponse;
 
       if (!response.ok) {
         throw new Error(
@@ -225,30 +286,40 @@ export default function CheckoutPage() {
 
       clear();
       setVerifiedTotal(Number(data.total));
-      setOrderNumber(String(data.orderNumber ?? ""));
+      setOrderNumber(
+        String(data.orderNumber ?? "")
+      );
       setStep("success");
+
       setMessage(
         data.message ||
           "Your order has been placed. Pay when it arrives."
       );
     } catch (error) {
-      if (cancelledRef.current) return;
+      if (cancelledRef.current) {
+        return;
+      }
 
       setStep("error");
       setMessage(getAuthErrorMessage(error));
     }
   }
 
-  if (lines.length === 0 && step === "form") {
+  if (
+    lines.length === 0 &&
+    step === "form"
+  ) {
     return (
       <div className="section-shell py-20 text-center">
         <div className="card mx-auto max-w-lg p-10">
           <h1 className="font-display text-2xl font-bold">
             Your cart is empty
           </h1>
+
           <p className="mt-2 text-sm text-ink/60">
             Add products before starting checkout.
           </p>
+
           <Link
             href="/#products"
             className="btn-primary mt-6"
@@ -260,24 +331,35 @@ export default function CheckoutPage() {
     );
   }
 
-  const displayedTotal = verifiedTotal ?? total();
-  const payOnDelivery = paymentMethod === "pay_on_delivery";
+  const displayedTotal =
+    verifiedTotal ?? total();
+
+  const payOnDelivery =
+    paymentMethod === "pay_on_delivery";
 
   return (
     <div className="section-shell py-10 sm:py-14">
-      <Link href="/cart" className="btn-ghost -ml-3 gap-2">
-        <ChevronLeft size={18} /> Back to cart
+      <Link
+        href="/cart"
+        className="btn-ghost -ml-3 gap-2"
+      >
+        <ChevronLeft size={18} />
+        Back to cart
       </Link>
 
       <div className="mx-auto mt-5 max-w-xl">
         <div className="text-center">
-          <p className="eyebrow">Secure checkout</p>
+          <p className="eyebrow">
+            Secure checkout
+          </p>
+
           <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
             Choose how to pay
           </h1>
+
           <p className="mt-3 text-sm leading-6 text-ink/60">
-            Your total and stock are verified from the live catalogue
-            before an order is accepted.
+            Your total and stock are verified from the
+            live catalogue before an order is accepted.
           </p>
         </div>
 
@@ -286,27 +368,56 @@ export default function CheckoutPage() {
             <span className="text-sm font-semibold text-ink/60">
               Order total
             </span>
+
             <span className="font-display text-2xl font-bold text-forest">
-              KES {displayedTotal.toLocaleString("en-KE")}
+              KES{" "}
+              {displayedTotal.toLocaleString(
+                "en-KE"
+              )}
             </span>
           </div>
 
           {step === "form" && (
             <form
               onSubmit={handleCheckout}
-              className="space-y-5 p-6"
+              className="relative space-y-5 p-6"
             >
+              <div
+                aria-hidden="true"
+                className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden"
+              >
+                <label htmlFor="companyWebsite">
+                  Company website
+                </label>
+
+                <input
+                  id="companyWebsite"
+                  name="companyWebsite"
+                  type="text"
+                  value={companyWebsite}
+                  onChange={(event) =>
+                    setCompanyWebsite(
+                      event.target.value
+                    )
+                  }
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </div>
+
               <div className="rounded-md border border-line bg-canvas/60 p-4">
                 <div className="flex items-start gap-3">
                   <UserRound
                     className="mt-0.5 text-forest"
                     size={19}
                   />
+
                   <div>
                     <p className="text-sm font-semibold">
                       {authLoading
                         ? "Checking your account..."
-                        : user && !user.isAnonymous
+                        : user &&
+                            !user.isAnonymous
                           ? `Ordering as ${
                               user.email ||
                               user.displayName ||
@@ -316,19 +427,23 @@ export default function CheckoutPage() {
                             ? "Continuing with your guest account"
                             : "Guest checkout is available"}
                     </p>
+
                     <p className="mt-1 text-xs leading-5 text-ink/50">
-                      {user && !user.isAnonymous
+                      {user &&
+                      !user.isAnonymous
                         ? "This order will appear in your account history."
                         : "A secure guest identity will be created so this order is not public."}
                     </p>
-                    {!user && !authLoading && (
-                      <Link
-                        href="/login?next=/checkout"
-                        className="mt-2 inline-block text-xs font-semibold text-forest hover:underline"
-                      >
-                        Sign in instead
-                      </Link>
-                    )}
+
+                    {!user &&
+                      !authLoading && (
+                        <Link
+                          href="/login?next=/checkout"
+                          className="mt-2 inline-block text-xs font-semibold text-forest hover:underline"
+                        >
+                          Sign in instead
+                        </Link>
+                      )}
                   </div>
                 </div>
               </div>
@@ -347,6 +462,7 @@ export default function CheckoutPage() {
                     >
                       Recipient name
                     </label>
+
                     <input
                       id="delivery-name"
                       required
@@ -354,7 +470,9 @@ export default function CheckoutPage() {
                       autoComplete="name"
                       value={deliveryName}
                       onChange={(event) =>
-                        setDeliveryName(event.target.value)
+                        setDeliveryName(
+                          event.target.value
+                        )
                       }
                       placeholder="Full name"
                     />
@@ -367,11 +485,13 @@ export default function CheckoutPage() {
                     >
                       Delivery address
                     </label>
+
                     <div className="relative">
                       <MapPin
                         className="absolute left-3 top-3 text-ink/35"
                         size={18}
                       />
+
                       <textarea
                         id="delivery-address"
                         required
@@ -379,7 +499,9 @@ export default function CheckoutPage() {
                         autoComplete="street-address"
                         value={deliveryAddress}
                         onChange={(event) =>
-                          setDeliveryAddress(event.target.value)
+                          setDeliveryAddress(
+                            event.target.value
+                          )
                         }
                         placeholder="Building, street, estate, town and county"
                       />
@@ -396,12 +518,15 @@ export default function CheckoutPage() {
                         (optional)
                       </span>
                     </label>
+
                     <input
                       id="delivery-notes"
                       className="input-field"
                       value={deliveryNotes}
                       onChange={(event) =>
-                        setDeliveryNotes(event.target.value)
+                        setDeliveryNotes(
+                          event.target.value
+                        )
                       }
                       placeholder="Landmark, preferred time or instructions"
                     />
@@ -418,11 +543,13 @@ export default function CheckoutPage() {
                     ? "Delivery phone number"
                     : "M-Pesa phone number"}
                 </label>
+
                 <div className="relative">
                   <Smartphone
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35"
                     size={18}
                   />
+
                   <input
                     id="phone"
                     required
@@ -433,12 +560,16 @@ export default function CheckoutPage() {
                     className="input-field pl-10"
                     value={phone}
                     onChange={(event) =>
-                      setPhone(event.target.value)
+                      setPhone(
+                        event.target.value
+                      )
                     }
                   />
                 </div>
+
                 <p className="mt-2 text-xs leading-5 text-ink/50">
-                  Accepted formats include 07XXXXXXXX, 01XXXXXXXX, or
+                  Accepted formats include
+                  07XXXXXXXX, 01XXXXXXXX, or
                   +254XXXXXXXXX.
                 </p>
               </div>
@@ -462,6 +593,7 @@ export default function CheckoutPage() {
                   size={44}
                 />
               )}
+
               {step === "success" &&
                 (payOnDelivery ? (
                   <PackageCheck
@@ -474,6 +606,7 @@ export default function CheckoutPage() {
                     size={48}
                   />
                 ))}
+
               {step === "error" && (
                 <XCircle
                   className="mx-auto text-red-600"
@@ -518,23 +651,30 @@ export default function CheckoutPage() {
 
               {step === "success" && (
                 <div className="mt-6 flex flex-col gap-3">
-                  <Link href="/" className="btn-primary">
+                  <Link
+                    href="/"
+                    className="btn-primary"
+                  >
                     Continue shopping
                   </Link>
-                  {user && !user.isAnonymous && (
-                    <Link
-                      href="/account"
-                      className="btn-secondary"
-                    >
-                      View order history
-                    </Link>
-                  )}
+
+                  {user &&
+                    !user.isAnonymous && (
+                      <Link
+                        href="/account"
+                        className="btn-secondary"
+                      >
+                        View order history
+                      </Link>
+                    )}
+
                   {isGuest && (
                     <Link
                       href="/register"
                       className="btn-secondary"
                     >
-                      Create account and keep this order
+                      Create account and keep this
+                      order
                     </Link>
                   )}
                 </div>
