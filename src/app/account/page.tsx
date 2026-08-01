@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   BookmarkPlus,
+  Crown,
   LogOut,
   MailCheck,
   Package,
@@ -45,6 +46,12 @@ interface OrderTemplate {
   createdAt: number;
 }
 
+interface MembershipData {
+  plan: { name: string; price: number; currency: "KES"; billingPeriod: string };
+  membership: { status: "none" | "active" | "expired"; startsAt: number; expiresAt: number };
+  pendingRequest: boolean;
+}
+
 const statusLabels: Record<OrderStatus, string> = {
   pending_payment: "Awaiting payment",
   paid: "Paid",
@@ -68,6 +75,9 @@ export default function AccountPage() {
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [templates, setTemplates] = useState<OrderTemplate[]>([]);
   const [busyAction, setBusyAction] = useState("");
+  const [membership, setMembership] = useState<MembershipData | null>(null);
+  const [membershipPhone, setMembershipPhone] = useState("");
+  const [membershipReceipt, setMembershipReceipt] = useState("");
   const replaceWithVerifiedLines = useCartStore((state) => state.replaceWithVerifiedLines);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -143,6 +153,31 @@ export default function AccountPage() {
       active = false;
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user || isGuest) return;
+    void authenticatedFetch("/api/membership")
+      .then(async (response) => {
+        const body = (await response.json()) as MembershipData & { error?: string };
+        if (!response.ok) throw new Error(body.error || "Membership could not be loaded.");
+        setMembership(body);
+      })
+      .catch((membershipError) => setError(membershipError instanceof Error ? membershipError.message : "Membership could not be loaded."));
+  }, [isGuest, user]);
+
+  async function submitMembership(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    setBusyAction("membership"); setError(""); setMessage("");
+    try {
+      const response = await authenticatedFetch("/api/membership", { method: "POST", body: JSON.stringify({ phone: membershipPhone, mpesaReceipt: membershipReceipt }) });
+      const body = (await response.json()) as { error?: string; message?: string };
+      if (!response.ok) throw new Error(body.error || "Membership payment could not be submitted.");
+      setMembership((current) => current ? { ...current, pendingRequest: true } : current);
+      setMembershipReceipt("");
+      setMessage(body.message || "Membership payment submitted for verification.");
+    } catch (membershipError) { setError(membershipError instanceof Error ? membershipError.message : "Membership payment could not be submitted."); }
+    finally { setBusyAction(""); }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -299,6 +334,15 @@ export default function AccountPage() {
 
       {error && <p className="mt-6 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {message && <p className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}
+
+      {!isGuest && membership && (
+        <section className="card mt-8 p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-xl"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-lg bg-marigold/20 text-marigold-dark"><Crown size={20} /></span><div><p className="eyebrow">Business membership</p><h2 className="font-display text-xl font-bold">{membership.plan.name}</h2></div></div><p className="mt-4 text-sm leading-6 text-ink/60">Monthly membership for repeat commercial buyers. Payment is verified manually before access is activated or renewed.</p><p className="mt-3 font-display text-2xl font-bold text-forest">KES {membership.plan.price.toLocaleString("en-KE")} <span className="font-sans text-sm font-normal text-ink/50">per month</span></p>{membership.membership.status === "active" && <p className="mt-3 rounded-lg bg-forest/10 p-3 text-sm font-semibold text-forest">Active until {dateLabel(membership.membership.expiresAt)}</p>}{membership.membership.status === "expired" && <p className="mt-3 rounded-lg bg-marigold/10 p-3 text-sm font-semibold text-marigold-dark">Membership expired. Submit a verified renewal payment to reactivate it.</p>}</div>
+            <form onSubmit={submitMembership} className="w-full max-w-md rounded-xl border border-line bg-canvas/50 p-4"><h3 className="font-semibold">Submit M-Pesa payment</h3><p className="mt-1 text-xs leading-5 text-ink/55">Pay using the official Duka payment details provided by sales, then submit the receipt for verification.</p><label className="mt-4 block text-sm font-semibold">M-Pesa phone<input className="input-field mt-2" type="tel" required value={membershipPhone} onChange={(event) => setMembershipPhone(event.target.value)} placeholder="07XXXXXXXX" /></label><label className="mt-4 block text-sm font-semibold">M-Pesa receipt<input className="input-field mt-2 uppercase" required minLength={8} maxLength={20} value={membershipReceipt} onChange={(event) => setMembershipReceipt(event.target.value.toUpperCase())} /></label><button className="btn-primary mt-4 w-full" type="submit" disabled={membership.pendingRequest || busyAction === "membership"}>{membership.pendingRequest ? "Verification pending" : busyAction === "membership" ? "Submitting…" : "Submit for verification"}</button></form>
+          </div>
+        </section>
+      )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <section className="card p-6">

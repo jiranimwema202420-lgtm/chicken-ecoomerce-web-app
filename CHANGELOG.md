@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added KES 1,000 monthly business memberships with manual M-Pesa verification, expiry, and revenue reporting.
 - Added per-product supplier commission attribution with immutable order snapshots.
 - Added private supplier earnings and administrator commission reporting.
 - Added authenticated one-click reordering with current price and stock verification.

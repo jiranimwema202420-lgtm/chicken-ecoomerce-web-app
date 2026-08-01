@@ -6,6 +6,7 @@ import { signOut } from "firebase/auth";
 import {
   Handshake,
   BadgeDollarSign,
+  BadgeCheck,
   LayoutGrid,
   LogOut,
   Package,
@@ -26,6 +27,12 @@ const links = [
     href: "/admin/revenue",
     label: "Revenue",
     icon: BadgeDollarSign,
+    exact: false,
+  },
+  {
+    href: "/admin/memberships",
+    label: "Memberships",
+    icon: BadgeCheck,
     exact: false,
   },
   {
