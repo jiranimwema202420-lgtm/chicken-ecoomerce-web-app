@@ -10,6 +10,11 @@ import { CartLine, Product } from "@/lib/types";
 import { getRequestUser } from "@/lib/server-auth";
 import { paymentApiRateLimit } from "@/lib/server/rate-limit";
 import { applySpamGuard } from "@/lib/server/spam-guard";
+import {
+  calculatePricing,
+  loadProductEconomics,
+  loadRevenueSettings,
+} from "@/lib/server/order-pricing";
 
 export const runtime = "nodejs";
 
@@ -55,6 +60,10 @@ function tokenHash(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function cleanString(value: unknown, maximum: number): string {
+  return String(value ?? "").trim().slice(0, maximum);
+}
+
 export async function POST(req: NextRequest) {
   let orderId: string | null = null;
 
@@ -77,10 +86,20 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as Record<string, unknown>;
     const phone = String(body.phone ?? "").trim();
     const requestedLines = parseRequestedLines(body.lines);
+    const deliveryName = cleanString(body.deliveryName, 160);
+    const deliveryAddress = cleanString(body.deliveryAddress, 500);
+    const deliveryNotes = cleanString(body.deliveryNotes, 500);
+    const deliveryZoneId = cleanString(body.deliveryZoneId, 64);
 
-    if (!isValidKenyanMobile(phone) || !requestedLines) {
+    if (
+      !isValidKenyanMobile(phone) ||
+      !requestedLines ||
+      deliveryName.length < 2 ||
+      deliveryAddress.length < 8 ||
+      !/^[a-z0-9-]{3,64}$/.test(deliveryZoneId)
+    ) {
       return NextResponse.json(
-        { error: "Enter a valid Kenyan mobile number and review your cart." },
+        { error: "Enter valid delivery details, select a delivery zone, and review your cart." },
         { status: 400 }
       );
     }
@@ -91,7 +110,6 @@ export async function POST(req: NextRequest) {
     const productSnapshots = await adminDb.getAll(...productRefs);
 
     const lines: CartLine[] = [];
-    let total = 0;
 
     for (let index = 0; index < productSnapshots.length; index += 1) {
       const snapshot = productSnapshots[index];
@@ -126,8 +144,28 @@ export async function POST(req: NextRequest) {
         imageUrl: product.imageUrl,
         quantity: requested.quantity,
       });
-      total += product.price * requested.quantity;
     }
+
+    const [settings, economics] = await Promise.all([
+      loadRevenueSettings(),
+      loadProductEconomics(lines.map((line) => line.productId)),
+    ]);
+    let pricingBreakdown;
+    try {
+      pricingBreakdown = calculatePricing(
+        lines,
+        deliveryZoneId,
+        settings,
+        economics,
+        "mpesa",
+      );
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "The order pricing is invalid." },
+        { status: 400 },
+      );
+    }
+    const total = pricingBreakdown.total;
 
     if (!Number.isFinite(total) || total <= 0 || total > 500_000) {
       return NextResponse.json(
@@ -156,6 +194,12 @@ export async function POST(req: NextRequest) {
       lines,
       total,
       phone: normalizeMsisdn(phone),
+      deliveryName,
+      deliveryAddress,
+      deliveryNotes,
+      deliveryZoneId: pricingBreakdown.deliveryZoneId,
+      deliveryZoneName: pricingBreakdown.deliveryZoneName,
+      pricingBreakdown,
       status: "pending_payment",
       statusTokenHash: tokenHash(statusToken),
       createdAt: now,
@@ -236,5 +280,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
-

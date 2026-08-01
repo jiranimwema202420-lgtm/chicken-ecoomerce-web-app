@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import {
   Handshake,
+  BadgeDollarSign,
   LayoutGrid,
   LogOut,
   Package,
@@ -19,6 +20,12 @@ const links = [
     href: "/admin/products",
     label: "Products",
     icon: Package,
+    exact: false,
+  },
+  {
+    href: "/admin/revenue",
+    label: "Revenue",
+    icon: BadgeDollarSign,
     exact: false,
   },
   {

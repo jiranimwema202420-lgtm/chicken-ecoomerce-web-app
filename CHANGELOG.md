@@ -10,6 +10,12 @@ The project follows Semantic Versioning:
 
 ## [Unreleased]
 
+### Added
+
+- Added Phase 1 monetization controls: private product economics, delivery-zone
+  fees, minimum-order enforcement, free-delivery thresholds, server-trusted
+  pricing breakdowns, conversion events, and an admin profitability dashboard.
+
 ### Security
 
 - Added a global authenticated-session policy with a 30-minute inactivity

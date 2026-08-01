@@ -51,6 +51,21 @@ export interface Order {
   deliveryName?: string;
   deliveryAddress?: string;
   deliveryNotes?: string;
+  deliveryZoneId?: string;
+  deliveryZoneName?: string;
+  pricingBreakdown?: {
+    currency: "KES";
+    subtotal: number;
+    deliveryFee: number;
+    total: number;
+    minimumOrder: number;
+    estimatedProductCost: number;
+    estimatedPackagingCost: number;
+    estimatedDeliveryCost: number;
+    estimatedPaymentCost: number;
+    estimatedGrossProfit: number;
+    estimatedGrossMarginPercent: number;
+  };
   paymentReference?: string | null;
   mpesaCheckoutRequestId?: string;
   mpesaReceiptNumber?: string;

@@ -18,6 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { signInAnonymously } from "firebase/auth";
+import posthog from "posthog-js";
 
 import PaymentMethodSelector, {
   type CheckoutPaymentMethod,
@@ -52,6 +53,21 @@ interface MpesaCheckoutResponse {
   statusToken: string;
 }
 
+interface PublicDeliveryZone {
+  id: string;
+  name: string;
+  deliveryFee: number;
+  minimumOrder: number;
+  freeDeliveryThreshold: number;
+  active: boolean;
+}
+
+interface PricingConfiguration {
+  currency: "KES";
+  defaultMinimumOrder: number;
+  zones: PublicDeliveryZone[];
+}
+
 interface PayOnDeliveryResponse {
   error?: string;
   total: number;
@@ -80,6 +96,9 @@ export default function CheckoutPage(): React.ReactElement {
   const [deliveryName, setDeliveryName] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [deliveryZoneId, setDeliveryZoneId] = useState("");
+  const [pricingConfiguration, setPricingConfiguration] =
+    useState<PricingConfiguration | null>(null);
 
   // Honeypot field. Real customers should never complete this field.
   const [companyWebsite, setCompanyWebsite] = useState("");
@@ -105,6 +124,26 @@ export default function CheckoutPage(): React.ReactElement {
       setDeliveryName(user.displayName);
     }
   }, [deliveryName, user]);
+
+  useEffect(() => {
+    let active = true;
+
+    void fetch("/api/commerce/pricing")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Delivery pricing is unavailable.");
+        return (await response.json()) as PricingConfiguration;
+      })
+      .then((configuration) => {
+        if (!active) return;
+        setPricingConfiguration(configuration);
+        setDeliveryZoneId((current) => current || configuration.zones[0]?.id || "");
+      })
+      .catch((error) => console.error("Checkout pricing failed:", error));
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function getCheckoutIdentity(): Promise<{
     idToken: string;
@@ -159,6 +198,11 @@ export default function CheckoutPage(): React.ReactElement {
         clear();
         setVerifiedTotal(order.total);
         setStep("success");
+        posthog.capture("payment_succeeded", {
+          payment_method: "mpesa",
+          order_id: orderId,
+          order_total: order.total,
+        });
 
         setMessage(
           order.mpesaReceiptNumber
@@ -205,6 +249,13 @@ export default function CheckoutPage(): React.ReactElement {
     );
 
     try {
+      posthog.capture("checkout_started", {
+        payment_method: paymentMethod,
+        cart_subtotal: total(),
+        item_count: lines.reduce((sum, line) => sum + line.quantity, 0),
+        delivery_zone_id: deliveryZoneId,
+      });
+
       const { idToken } = await getCheckoutIdentity();
 
       if (paymentMethod === "mpesa") {
@@ -218,6 +269,10 @@ export default function CheckoutPage(): React.ReactElement {
             },
             body: JSON.stringify({
               phone,
+              deliveryName,
+              deliveryAddress,
+              deliveryNotes,
+              deliveryZoneId,
               companyWebsite,
               lines: lines.map((line) => ({
                 productId: line.productId,
@@ -238,6 +293,12 @@ export default function CheckoutPage(): React.ReactElement {
         }
 
         setVerifiedTotal(Number(data.total));
+        posthog.capture("payment_initiated", {
+          payment_method: "mpesa",
+          order_id: data.orderId,
+          order_total: Number(data.total),
+          delivery_zone_id: deliveryZoneId,
+        });
 
         setMessage(
           data.customerMessage ||
@@ -265,6 +326,7 @@ export default function CheckoutPage(): React.ReactElement {
             deliveryName,
             deliveryAddress,
             deliveryNotes,
+            deliveryZoneId,
             companyWebsite,
             lines: lines.map((line) => ({
               productId: line.productId,
@@ -290,6 +352,11 @@ export default function CheckoutPage(): React.ReactElement {
         String(data.orderNumber ?? "")
       );
       setStep("success");
+      posthog.capture("order_created", {
+        payment_method: "pay_on_delivery",
+        order_total: Number(data.total),
+        delivery_zone_id: deliveryZoneId,
+      });
 
       setMessage(
         data.message ||
@@ -331,8 +398,17 @@ export default function CheckoutPage(): React.ReactElement {
     );
   }
 
-  const displayedTotal =
-    verifiedTotal ?? total();
+  const selectedZone = pricingConfiguration?.zones.find(
+    (zone) => zone.id === deliveryZoneId,
+  );
+  const cartSubtotal = total();
+  const estimatedDeliveryFee = selectedZone
+    ? selectedZone.freeDeliveryThreshold > 0 &&
+      cartSubtotal >= selectedZone.freeDeliveryThreshold
+      ? 0
+      : selectedZone.deliveryFee
+    : 0;
+  const displayedTotal = verifiedTotal ?? cartSubtotal + estimatedDeliveryFee;
 
   const payOnDelivery =
     paymentMethod === "pay_on_delivery";
@@ -453,8 +529,39 @@ export default function CheckoutPage(): React.ReactElement {
                 onChange={setPaymentMethod}
               />
 
-              {payOnDelivery && (
-                <div className="space-y-4 rounded-xl border border-line bg-canvas/45 p-4">
+              <div className="space-y-4 rounded-xl border border-line bg-canvas/45 p-4">
+                  <div>
+                    <label
+                      htmlFor="delivery-zone"
+                      className="mb-2 block text-sm font-semibold"
+                    >
+                      Delivery zone
+                    </label>
+                    <select
+                      id="delivery-zone"
+                      required
+                      className="input-field"
+                      value={deliveryZoneId}
+                      onChange={(event) => setDeliveryZoneId(event.target.value)}
+                      disabled={!pricingConfiguration}
+                    >
+                      <option value="">Select delivery zone</option>
+                      {pricingConfiguration?.zones.map((zone) => (
+                        <option key={zone.id} value={zone.id}>
+                          {zone.name} — KES {zone.deliveryFee.toLocaleString("en-KE")}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedZone && (
+                      <p className="mt-2 text-xs leading-5 text-ink/55">
+                        Minimum order: KES {Math.max(
+                          pricingConfiguration?.defaultMinimumOrder ?? 0,
+                          selectedZone.minimumOrder,
+                        ).toLocaleString("en-KE")}. Free delivery from KES{" "}
+                        {selectedZone.freeDeliveryThreshold.toLocaleString("en-KE")}.
+                      </p>
+                    )}
+                  </div>
                   <div>
                     <label
                       htmlFor="delivery-name"
@@ -532,7 +639,22 @@ export default function CheckoutPage(): React.ReactElement {
                     />
                   </div>
                 </div>
-              )}
+
+              <div className="rounded-xl border border-line bg-white/70 p-4 text-sm">
+                <div className="flex justify-between gap-4">
+                  <span className="text-ink/60">Products</span>
+                  <strong>KES {cartSubtotal.toLocaleString("en-KE")}</strong>
+                </div>
+                <div className="mt-2 flex justify-between gap-4">
+                  <span className="text-ink/60">Delivery</span>
+                  <strong>
+                    {estimatedDeliveryFee === 0 ? "Free" : `KES ${estimatedDeliveryFee.toLocaleString("en-KE")}`}
+                  </strong>
+                </div>
+                <p className="mt-3 border-t border-line pt-3 text-xs text-ink/50">
+                  The server verifies products, minimum order and delivery pricing before payment.
+                </p>
+              </div>
 
               <div>
                 <label
@@ -577,6 +699,7 @@ export default function CheckoutPage(): React.ReactElement {
               <button
                 type="submit"
                 className="btn-primary w-full"
+                disabled={!pricingConfiguration || !deliveryZoneId}
               >
                 {payOnDelivery
                   ? "Place pay-on-delivery order"

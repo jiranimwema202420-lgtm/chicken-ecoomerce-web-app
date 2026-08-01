@@ -174,6 +174,7 @@ Useful routes:
 - `/account` — profile, email verification, sign-out, and order history
 - `/admin/login` — administrator sign-in
 - `/admin/products` — product management
+- `/admin/revenue` — private costs, delivery pricing, minimum orders, and profit estimates
 
 ## Local Firestore emulator
 
@@ -263,6 +264,28 @@ credential preserves the same UID and therefore preserves guest order history.
 
 M-Pesa PINs never enter this application. PIN entry occurs entirely on the
 customer's handset.
+
+## Revenue and profitability controls
+
+Checkout retrieves public delivery zones from `/api/commerce/pricing`, but all
+totals are recalculated by the server. Customers submit only the selected zone,
+product IDs and quantities. The server enforces the configured minimum order,
+applies the delivery fee or free-delivery threshold, and stores an immutable
+`pricingBreakdown` with the order.
+
+Product landed and packaging costs are stored in the server-only
+`productEconomics` collection rather than public product documents. Delivery
+settings are stored in `commerceSettings/revenue`. Both collections are denied
+to browser clients by the existing default-deny Firestore rules and are managed
+through the admin-authorized revenue API.
+
+Until an administrator saves settings, checkout uses conservative defaults:
+
+- KES 3,000 default minimum order
+- Nairobi central, Greater Nairobi, and custom-location delivery zones
+- 0.5% estimated M-Pesa merchant fee capped at KES 200
+
+Review and replace these defaults in `/admin/revenue` before taking live orders.
 
 ## Recommended production additions
 

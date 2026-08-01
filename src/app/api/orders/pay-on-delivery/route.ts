@@ -15,6 +15,12 @@ import type {
 import { getRequestUser } from "@/lib/server-auth";
 import { paymentApiRateLimit } from "@/lib/server/rate-limit";
 import { applySpamGuard } from "@/lib/server/spam-guard";
+import {
+  calculatePricing,
+  loadProductEconomics,
+  loadRevenueSettings,
+  type PricingBreakdown,
+} from "@/lib/server/order-pricing";
 
 export const runtime = "nodejs";
 
@@ -107,12 +113,14 @@ export async function POST(request: NextRequest) {
     const phone = cleanString(body.phone, 40);
     const deliveryAddress = cleanString(body.deliveryAddress, 500);
     const deliveryNotes = cleanString(body.deliveryNotes, 500);
+    const deliveryZoneId = cleanString(body.deliveryZoneId, 64);
 
     if (
       !requestedLines ||
       deliveryName.length < 2 ||
       deliveryAddress.length < 8 ||
-      !isValidKenyanMobile(phone)
+      !isValidKenyanMobile(phone) ||
+      !/^[a-z0-9-]{3,64}$/.test(deliveryZoneId)
     ) {
       return NextResponse.json(
         {
@@ -132,6 +140,8 @@ export async function POST(request: NextRequest) {
     const now = Date.now();
     let verifiedTotal = 0;
     let verifiedLines: CartLine[] = [];
+    let verifiedPricing: PricingBreakdown | null = null;
+    const settings = await loadRevenueSettings();
 
     await adminDb.runTransaction(async (transaction) => {
       const productRefs = requestedLines.map(({ productId }) =>
@@ -142,7 +152,6 @@ export async function POST(request: NextRequest) {
       );
 
       const lines: CartLine[] = [];
-      let total = 0;
 
       for (
         let index = 0;
@@ -180,8 +189,19 @@ export async function POST(request: NextRequest) {
           imageUrl: product.imageUrl,
           quantity: requested.quantity,
         });
-        total += product.price * requested.quantity;
       }
+
+      const economics = await loadProductEconomics(
+        lines.map((line) => line.productId),
+      );
+      const pricingBreakdown = calculatePricing(
+        lines,
+        deliveryZoneId,
+        settings,
+        economics,
+        "pay_on_delivery",
+      );
+      const total = pricingBreakdown.total;
 
       if (!Number.isFinite(total) || total <= 0) {
         throw new Error("The order total is invalid.");
@@ -249,6 +269,9 @@ export async function POST(request: NextRequest) {
         deliveryName,
         deliveryAddress,
         deliveryNotes,
+        deliveryZoneId: pricingBreakdown.deliveryZoneId,
+        deliveryZoneName: pricingBreakdown.deliveryZoneName,
+        pricingBreakdown,
         status: "pending_payment",
         stockReserved: true,
         stockReservedAt: now,
@@ -259,6 +282,7 @@ export async function POST(request: NextRequest) {
 
       verifiedTotal = total;
       verifiedLines = lines;
+      verifiedPricing = pricingBreakdown;
     });
 
     return NextResponse.json({
@@ -267,6 +291,7 @@ export async function POST(request: NextRequest) {
       statusToken,
       total: verifiedTotal,
       lines: verifiedLines,
+      pricingBreakdown: verifiedPricing,
       message:
         "Your order has been placed. Pay the delivery representative when the products arrive.",
     });
@@ -282,10 +307,14 @@ export async function POST(request: NextRequest) {
       message.includes("stock") ||
       message.includes("no longer available") ||
       message.includes("invalid price");
+    const invalidPricing =
+      message.includes("minimum order") ||
+      message.includes("delivery zone") ||
+      message.includes("limited to KES");
 
     return NextResponse.json(
       { error: message },
-      { status: conflict ? 409 : 500 }
+      { status: conflict ? 409 : invalidPricing ? 400 : 500 }
     );
   }
 }
