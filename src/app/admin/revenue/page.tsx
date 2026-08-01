@@ -30,17 +30,25 @@ type RevenueProduct = {
   price: number;
   landedCost?: number;
   packagingCost?: number;
+  commissionSupplierId?: string;
+  commissionSupplierName?: string;
+  commissionRate?: number;
 };
+
+type RevenueSupplier = { id: string; name: string; active: boolean; productIds: string[] };
 
 type RevenueResponse = {
   settings: RevenueSettings;
   products: RevenueProduct[];
+  suppliers: RevenueSupplier[];
+  commissionSummary: Array<{ supplierId: string; supplierName: string; sales: number; commission: number }>;
   summary: {
     orders: number;
     revenue: number;
     deliveryRevenue: number;
     paymentCosts: number;
     estimatedGrossProfit: number;
+    supplierCommissions: number;
     uniqueCustomers: number;
     repeatCustomers: number;
     repeatCustomerRate: number;
@@ -95,6 +103,8 @@ export default function RevenuePage(): React.ReactElement {
           productId: product.id,
           landedCost: product.landedCost ?? 0,
           packagingCost: product.packagingCost ?? 0,
+          commissionSupplierId: product.commissionSupplierId ?? "",
+          commissionRatePercent: (product.commissionRate ?? 0) * 100,
         }),
       });
       const body = (await response.json()) as { error?: string };
@@ -127,6 +137,7 @@ export default function RevenuePage(): React.ReactElement {
     ["Delivery revenue", formatMoney(data.summary.deliveryRevenue)],
     ["Estimated payment costs", formatMoney(data.summary.paymentCosts)],
     ["Estimated gross profit", formatMoney(data.summary.estimatedGrossProfit)],
+    ["Supplier commissions", formatMoney(data.summary.supplierCommissions)],
     ["Unique customers", data.summary.uniqueCustomers.toLocaleString("en-KE")],
     ["Repeat customers", `${data.summary.repeatCustomers.toLocaleString("en-KE")} (${data.summary.repeatCustomerRate.toFixed(1)}%)`],
   ];
@@ -221,7 +232,7 @@ export default function RevenuePage(): React.ReactElement {
             const cost = (product.landedCost ?? 0) + (product.packagingCost ?? 0);
             const margin = product.price - cost;
             return (
-              <div key={product.id} className="grid gap-3 p-4 sm:grid-cols-[minmax(180px,1fr)_130px_130px_150px_auto] sm:items-end">
+              <div key={product.id} className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_120px_120px_180px_110px_130px_auto] xl:items-end">
                 <div>
                   <p className="font-semibold">{product.name}</p>
                   <p className="text-xs text-ink/50">Selling price {formatMoney(product.price)} · Margin {formatMoney(margin)}</p>
@@ -241,6 +252,36 @@ export default function RevenuePage(): React.ReactElement {
                     />
                   </label>
                 ))}
+                <label className="text-xs font-semibold text-ink/60">
+                  Commission supplier
+                  <select
+                    className="input-field mt-1"
+                    value={product.commissionSupplierId ?? ""}
+                    onChange={(event) => {
+                      const supplier = data.suppliers.find((item) => item.id === event.target.value);
+                      const products = data.products.map((item, productIndex) => productIndex === index ? { ...item, commissionSupplierId: event.target.value, commissionSupplierName: supplier?.name ?? "" } : item);
+                      setData({ ...data, products });
+                    }}
+                  >
+                    <option value="">No commission</option>
+                    {data.suppliers.filter((supplier) => supplier.active && supplier.productIds.includes(product.id)).map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-ink/60">
+                  Rate (%)
+                  <input
+                    className="input-field mt-1"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={(product.commissionRate ?? 0) * 100}
+                    onChange={(event) => {
+                      const products = data.products.map((item, productIndex) => productIndex === index ? { ...item, commissionRate: Number(event.target.value) / 100 } : item);
+                      setData({ ...data, products });
+                    }}
+                  />
+                </label>
                 <p className={`pb-3 text-sm font-bold ${margin < 0 ? "text-red-600" : "text-forest"}`}>
                   {product.price > 0 ? `${((margin / product.price) * 100).toFixed(1)}% margin` : "No price"}
                 </p>
@@ -251,6 +292,26 @@ export default function RevenuePage(): React.ReactElement {
             );
           })}
         </div>
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="border-b border-line p-5 sm:p-6">
+          <h2 className="font-display text-xl font-bold">Accrued supplier commissions</h2>
+          <p className="mt-1 text-sm text-ink/55">Completed orders only. Each amount uses the commission snapshot stored when the order was created.</p>
+        </div>
+        {data.commissionSummary.length === 0 ? (
+          <p className="p-6 text-sm text-ink/55">No supplier commissions have accrued yet.</p>
+        ) : (
+          <div className="divide-y divide-line">
+            {data.commissionSummary.map((item) => (
+              <div key={item.supplierId} className="grid gap-2 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-8">
+                <p className="font-semibold">{item.supplierName}</p>
+                <p className="text-sm text-ink/55">Attributed sales {formatMoney(item.sales)}</p>
+                <p className="font-display text-lg font-bold text-forest">{formatMoney(item.commission)}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

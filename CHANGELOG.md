@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added per-product supplier commission attribution with immutable order snapshots.
+- Added private supplier earnings and administrator commission reporting.
 - Added authenticated one-click reordering with current price and stock verification.
 - Added private reusable order templates for repeat customers.
 - Added unique-customer and repeat-customer metrics to the revenue dashboard.

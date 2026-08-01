@@ -20,6 +20,12 @@ import {
 interface ProfileResponse {
   supplier: SupplierProfile;
   products: Product[];
+  commissionSummary: {
+    currency: "KES";
+    completedOrders: number;
+    attributedSales: number;
+    accruedCommission: number;
+  };
 }
 
 function statusClass(status: SupplyRequestStatus): string {
@@ -162,6 +168,18 @@ export default function SupplierDashboardPage() {
           </div>
         ))}
       </div>
+
+      {profile && (
+        <section className="card mt-6 p-6">
+          <p className="eyebrow">Commission earnings</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div><p className="text-sm text-ink/55">Completed attributed orders</p><p className="mt-1 font-display text-2xl font-bold">{profile.commissionSummary.completedOrders}</p></div>
+            <div><p className="text-sm text-ink/55">Attributed product sales</p><p className="mt-1 font-display text-2xl font-bold">KES {profile.commissionSummary.attributedSales.toLocaleString("en-KE")}</p></div>
+            <div><p className="text-sm text-ink/55">Accrued commission</p><p className="mt-1 font-display text-2xl font-bold text-forest">KES {profile.commissionSummary.accruedCommission.toLocaleString("en-KE")}</p></div>
+          </div>
+          <p className="mt-4 text-xs leading-5 text-ink/50">Figures include paid and fulfilled orders in the current reporting window. Payment settlement is managed separately by Duka finance.</p>
+        </section>
+      )}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
         <section className="card p-6">

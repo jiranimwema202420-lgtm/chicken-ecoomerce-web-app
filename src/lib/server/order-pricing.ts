@@ -26,6 +26,19 @@ export type ProductEconomics = {
   productId: string;
   landedCost: number;
   packagingCost: number;
+  commissionSupplierId: string;
+  commissionSupplierName: string;
+  commissionRate: number;
+};
+
+export type SupplierCommissionLine = {
+  supplierId: string;
+  supplierName: string;
+  productId: string;
+  productName: string;
+  salesAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
 };
 
 export type PricingBreakdown = {
@@ -40,6 +53,8 @@ export type PricingBreakdown = {
   estimatedPackagingCost: number;
   estimatedDeliveryCost: number;
   estimatedPaymentCost: number;
+  estimatedSupplierCommission: number;
+  supplierCommissions: SupplierCommissionLine[];
   estimatedGrossProfit: number;
   estimatedGrossMarginPercent: number;
 };
@@ -165,6 +180,9 @@ export async function loadProductEconomics(
           productId: snapshot.id,
           landedCost: money(data.landedCost),
           packagingCost: money(data.packagingCost),
+          commissionSupplierId: String(data.commissionSupplierId ?? ""),
+          commissionSupplierName: String(data.commissionSupplierName ?? ""),
+          commissionRate: Math.min(1, money(data.commissionRate)),
         },
       ];
     }),
@@ -208,6 +226,23 @@ export function calculatePricing(
       0,
     ),
   );
+  const supplierCommissions = lines.flatMap((line): SupplierCommissionLine[] => {
+    const productEconomics = economics.get(line.productId);
+    if (!productEconomics?.commissionSupplierId || productEconomics.commissionRate <= 0) return [];
+    const salesAmount = money(line.price * line.quantity);
+    return [{
+      supplierId: productEconomics.commissionSupplierId,
+      supplierName: productEconomics.commissionSupplierName || "Supplier",
+      productId: line.productId,
+      productName: line.name,
+      salesAmount,
+      commissionRate: productEconomics.commissionRate,
+      commissionAmount: money(salesAmount * productEconomics.commissionRate),
+    }];
+  });
+  const estimatedSupplierCommission = money(
+    supplierCommissions.reduce((sum, item) => sum + item.commissionAmount, 0),
+  );
   const total = money(subtotal + deliveryFee);
   const estimatedPaymentCost =
     paymentMethod === "mpesa"
@@ -218,7 +253,8 @@ export function calculatePricing(
       estimatedProductCost -
       estimatedPackagingCost -
       zone.internalDeliveryCost -
-      estimatedPaymentCost,
+      estimatedPaymentCost -
+      estimatedSupplierCommission,
   );
 
   return {
@@ -233,6 +269,8 @@ export function calculatePricing(
     estimatedPackagingCost,
     estimatedDeliveryCost: zone.internalDeliveryCost,
     estimatedPaymentCost,
+    estimatedSupplierCommission,
+    supplierCommissions,
     estimatedGrossProfit,
     estimatedGrossMarginPercent:
       total > 0 ? Math.round((estimatedGrossProfit / total) * 10_000) / 100 : 0,
