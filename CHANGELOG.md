@@ -12,6 +12,12 @@ The project follows Semantic Versioning:
 
 ### Security
 
+- Added a global authenticated-session policy with a 30-minute inactivity
+  timeout, five-minute warning, eight-hour maximum duration, cross-tab logout,
+  and activity-aware renewal. Anonymous guest checkout remains uninterrupted.
+
+### Security
+
 - Updated Next.js and pinned patched image/CSS processing dependencies.
 - Added rate limits to payment initiation and order-status requests.
 - Verified M-Pesa callback amount, phone, receipt uniqueness, and order linkage

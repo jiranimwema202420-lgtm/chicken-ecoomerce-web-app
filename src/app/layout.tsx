@@ -8,6 +8,7 @@ import InventorySyncProvider from "@/components/InventorySyncProvider";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import ThemeScript from "@/components/theme/ThemeScript";
 import { AuthProvider } from "@/lib/auth-context";
+import SessionTimeout from "@/components/auth/SessionTimeout";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -131,6 +132,7 @@ export default function RootLayout({
         <PwaRegistration />
         <ThemeProvider>
           <AuthProvider>
+            <SessionTimeout />
             <InventorySyncProvider>
               <Navbar />
 
