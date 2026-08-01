@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added authenticated one-click reordering with current price and stock verification.
+- Added private reusable order templates for repeat customers.
+- Added unique-customer and repeat-customer metrics to the revenue dashboard.
+
 All notable changes to Duka Ecommerce are documented in this file.
 
 The project follows Semantic Versioning:

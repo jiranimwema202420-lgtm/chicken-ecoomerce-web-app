@@ -5,10 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
+  BookmarkPlus,
   LogOut,
   MailCheck,
   Package,
   RefreshCw,
+  ShoppingCart,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import {
@@ -20,7 +23,9 @@ import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
+import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import type { CartLine, OrderStatus } from "@/lib/types";
+import { useCartStore } from "@/store/cart-store";
 
 interface CustomerOrder {
   id: string;
@@ -31,6 +36,13 @@ interface CustomerOrder {
   mpesaReceiptNumber: string | null;
   createdAt: number;
   updatedAt: number;
+}
+
+interface OrderTemplate {
+  id: string;
+  name: string;
+  itemCount: number;
+  createdAt: number;
 }
 
 const statusLabels: Record<OrderStatus, string> = {
@@ -54,6 +66,9 @@ export default function AccountPage() {
   const { user, isGuest, loading: authLoading } = useAuth();
   const [name, setName] = useState("");
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [templates, setTemplates] = useState<OrderTemplate[]>([]);
+  const [busyAction, setBusyAction] = useState("");
+  const replaceWithVerifiedLines = useCartStore((state) => state.replaceWithVerifiedLines);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -128,6 +143,70 @@ export default function AccountPage() {
       active = false;
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    void authenticatedFetch("/api/order-templates")
+      .then(async (response) => {
+        const body = (await response.json()) as { templates?: OrderTemplate[]; error?: string };
+        if (!response.ok) throw new Error(body.error || "Saved orders could not be loaded.");
+        setTemplates(body.templates ?? []);
+      })
+      .catch((templateError) => setError(templateError instanceof Error ? templateError.message : "Saved orders could not be loaded."));
+  }, [user]);
+
+  async function reorder(source: { orderId?: string; templateId?: string }): Promise<void> {
+    const key = source.orderId ?? source.templateId ?? "reorder";
+    setBusyAction(`reorder:${key}`);
+    setError("");
+    setMessage("");
+    try {
+      const response = await authenticatedFetch("/api/orders/reorder", { method: "POST", body: JSON.stringify(source) });
+      const body = (await response.json()) as { lines?: CartLine[]; unavailable?: string[]; error?: string };
+      if (!response.ok || !body.lines) throw new Error(body.error || "This order could not be restored.");
+      replaceWithVerifiedLines(body.lines);
+      const unavailable = body.unavailable?.length ?? 0;
+      setMessage(unavailable ? `Cart refreshed. ${unavailable} unavailable item${unavailable === 1 ? " was" : "s were"} omitted.` : "Cart refreshed with current prices and availability.");
+      router.push("/cart");
+    } catch (reorderError) {
+      setError(reorderError instanceof Error ? reorderError.message : "This order could not be restored.");
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function saveTemplate(order: CustomerOrder): Promise<void> {
+    setBusyAction(`save:${order.id}`);
+    setError("");
+    try {
+      const name = `Order ${order.id.slice(0, 8).toUpperCase()}`;
+      const response = await authenticatedFetch("/api/order-templates", { method: "POST", body: JSON.stringify({ orderId: order.id, name }) });
+      const body = (await response.json()) as { template?: OrderTemplate; error?: string };
+      if (!response.ok || !body.template) throw new Error(body.error || "The order could not be saved.");
+      setTemplates((current) => [{ ...body.template!, itemCount: order.lines.length }, ...current]);
+      setMessage("Order saved for faster repeat purchases.");
+    } catch (templateError) {
+      setError(templateError instanceof Error ? templateError.message : "The order could not be saved.");
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function deleteTemplate(id: string): Promise<void> {
+    setBusyAction(`delete:${id}`);
+    setError("");
+    try {
+      const response = await authenticatedFetch(`/api/order-templates?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(body.error || "The saved order could not be removed.");
+      setTemplates((current) => current.filter((template) => template.id !== id));
+      setMessage("Saved order removed.");
+    } catch (templateError) {
+      setError(templateError instanceof Error ? templateError.message : "The saved order could not be removed.");
+    } finally {
+      setBusyAction("");
+    }
+  }
 
   async function handleProfileSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -231,6 +310,24 @@ export default function AccountPage() {
             </div>
           </div>
 
+          {templates.length > 0 && (
+            <div className="mt-6 rounded-xl border border-forest/20 bg-forest/5 p-4">
+              <h3 className="font-display text-lg font-bold">Saved repeat orders</h3>
+              <p className="mt-1 text-xs text-ink/55">Prices and stock are checked again before items reach your cart.</p>
+              <div className="mt-3 space-y-2">
+                {templates.map((template) => (
+                  <div key={template.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-3">
+                    <div><p className="text-sm font-semibold">{template.name}</p><p className="text-xs text-ink/50">{template.itemCount} item{template.itemCount === 1 ? "" : "s"}</p></div>
+                    <div className="flex gap-2">
+                      <button type="button" className="btn-secondary gap-2 px-3 py-2 text-xs" disabled={Boolean(busyAction)} onClick={() => void reorder({ templateId: template.id })}><ShoppingCart size={15} /> Use</button>
+                      <button type="button" aria-label={`Delete ${template.name}`} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-ink/50 hover:text-red-600" disabled={Boolean(busyAction)} onClick={() => void deleteTemplate(template.id)}><Trash2 size={15} /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {isGuest ? (
             <div className="mt-6 rounded-lg border border-marigold/40 bg-marigold/10 p-5">
               <h3 className="font-semibold">Keep your guest order history</h3>
@@ -309,6 +406,10 @@ export default function AccountPage() {
                     <span className="font-display text-lg font-bold text-forest">KES {order.total.toLocaleString("en-KE")}</span>
                   </div>
                   {order.mpesaReceiptNumber && <p className="mt-2 text-xs text-ink/50">M-Pesa receipt: {order.mpesaReceiptNumber}</p>}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button type="button" className="btn-primary gap-2 px-4 py-2 text-sm" disabled={Boolean(busyAction)} onClick={() => void reorder({ orderId: order.id })}><ShoppingCart size={16} /> Reorder</button>
+                    <button type="button" className="btn-secondary gap-2 px-4 py-2 text-sm" disabled={Boolean(busyAction)} onClick={() => void saveTemplate(order)}><BookmarkPlus size={16} /> Save order</button>
+                  </div>
                 </article>
               ))}
             </div>

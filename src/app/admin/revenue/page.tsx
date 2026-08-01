@@ -41,6 +41,9 @@ type RevenueResponse = {
     deliveryRevenue: number;
     paymentCosts: number;
     estimatedGrossProfit: number;
+    uniqueCustomers: number;
+    repeatCustomers: number;
+    repeatCustomerRate: number;
   };
 };
 
@@ -124,6 +127,8 @@ export default function RevenuePage(): React.ReactElement {
     ["Delivery revenue", formatMoney(data.summary.deliveryRevenue)],
     ["Estimated payment costs", formatMoney(data.summary.paymentCosts)],
     ["Estimated gross profit", formatMoney(data.summary.estimatedGrossProfit)],
+    ["Unique customers", data.summary.uniqueCustomers.toLocaleString("en-KE")],
+    ["Repeat customers", `${data.summary.repeatCustomers.toLocaleString("en-KE")} (${data.summary.repeatCustomerRate.toFixed(1)}%)`],
   ];
 
   return (

@@ -44,6 +44,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
   });
 
+  const completedOrdersByCustomer = new Map<string, number>();
   const summary = ordersSnapshot.docs.reduce(
     (result, document) => {
       const order = document.data();
@@ -54,12 +55,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       result.deliveryRevenue += money(breakdown?.deliveryFee) ?? 0;
       result.paymentCosts += money(breakdown?.estimatedPaymentCost) ?? 0;
       result.estimatedGrossProfit += signedAmount(breakdown?.estimatedGrossProfit);
+      const userId = typeof order.userId === "string" ? order.userId : "";
+      if (userId) completedOrdersByCustomer.set(userId, (completedOrdersByCustomer.get(userId) ?? 0) + 1);
       return result;
     },
     { orders: 0, revenue: 0, deliveryRevenue: 0, paymentCosts: 0, estimatedGrossProfit: 0 },
   );
 
-  return NextResponse.json({ settings, products, summary });
+  const uniqueCustomers = completedOrdersByCustomer.size;
+  const repeatCustomers = [...completedOrdersByCustomer.values()].filter((count) => count >= 2).length;
+  const repeatCustomerRate = uniqueCustomers ? Math.round((repeatCustomers / uniqueCustomers) * 10_000) / 100 : 0;
+
+  return NextResponse.json({ settings, products, summary: { ...summary, uniqueCustomers, repeatCustomers, repeatCustomerRate } });
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {

@@ -14,6 +14,8 @@ admin catalogue dashboard.
 - Token-protected payment-status API; each customer can read only orders linked to their Firebase UID.
 - Customer email/password registration, Google sign-in, password reset, email verification, persistent sessions, profile editing, and order history.
 - Anonymous Firebase guest checkout with account linking so guest orders can be retained after registration.
+- Secure repeat ordering with live price and stock refresh, plus private saved-order templates.
+- Unique-customer and repeat-customer metrics in the administrator revenue dashboard.
 - Idempotent M-Pesa callback handling with stock reduction after confirmed payment.
 - Firebase email/password admin login with an `admin: true` custom claim.
 - Product create, edit, delete, visibility, stock, pricing, and image upload tools.

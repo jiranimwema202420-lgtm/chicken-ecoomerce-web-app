@@ -10,6 +10,7 @@ interface CartState {
   removeItem: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
   reconcileWithProducts: (products: Product[]) => void;
+  replaceWithVerifiedLines: (lines: CartLine[]) => void;
   clear: () => void;
   total: () => number;
 }
@@ -145,6 +146,14 @@ export const useCartStore = create<CartState>()(
           set({ lines: nextLines });
         }
       },
+
+      replaceWithVerifiedLines: (lines) =>
+        set({
+          lines: lines.slice(0, 30).map((line) => ({
+            ...line,
+            quantity: clampQuantity(line.quantity, line.maxQuantity),
+          })),
+        }),
 
       clear: () => set({ lines: [] }),
 
