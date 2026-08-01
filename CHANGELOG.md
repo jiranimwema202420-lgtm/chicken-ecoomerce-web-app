@@ -12,6 +12,8 @@ The project follows Semantic Versioning:
 
 ### Added
 
+- Accessible skip navigation, responsive menu behavior, clearer catalogue
+  actions, truthful service standards, and improved footer navigation.
 - Scalable application structure and version metadata.
 - GitHub Actions validation workflow.
 - Health and version API endpoints.

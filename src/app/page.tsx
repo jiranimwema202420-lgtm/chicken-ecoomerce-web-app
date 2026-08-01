@@ -13,7 +13,6 @@ import {
   MessageCircle,
   PackageCheck,
   Phone,
-  Quote,
   Scale,
   ShieldCheck,
   ShoppingBasket,
@@ -91,44 +90,21 @@ const buyerSegments = [
   },
 ];
 
-const benefits = [
+const serviceStandards = [
   {
-    icon: BadgeCheck,
-    title: "Consistent quality",
-    text: "Broilers selected and prepared to support dependable portioning and menu planning.",
+    icon: PackageCheck,
+    title: "Clear before you order",
+    text: "See product details, live availability and pricing before adding stock to your cart.",
   },
   {
-    icon: Scale,
-    title: "Wholesale savings",
-    text: "Bulk pricing helps commercial buyers lower food costs and improve margins.",
-  },
-  {
-    icon: Truck,
-    title: "Reliable fulfilment",
-    text: "Order tracking, stock visibility and delivery coordination keep operations moving.",
+    icon: ClipboardCheck,
+    title: "Recorded after checkout",
+    text: "Keep an order trail with payment references, fulfilment status, invoices and receipts.",
   },
   {
     icon: ShieldCheck,
-    title: "Transparent records",
-    text: "Invoices, receipts, order history and payment records are available in one place.",
-  },
-];
-
-const reviewHighlights = [
-  {
-    quote:
-      "The ordering process is clear, the stock is visible, and our kitchen team can plan purchases with confidence.",
-    role: "Hotel and catering buyer",
-  },
-  {
-    quote:
-      "Bulk pricing and organised delivery records make it easier to control food costs across multiple orders.",
-    role: "Restaurant operator",
-  },
-  {
-    quote:
-      "The platform gives retail buyers a practical way to order, track, and resolve supply concerns.",
-    role: "Supermarket purchasing team",
+    title: "Supported when issues arise",
+    text: "Use the order record to report and resolve quantity, quality, delivery or payment concerns.",
   },
 ];
 
@@ -160,14 +136,10 @@ const resolutionSteps = [
 ];
 
 export default function LandingPage() {
-  const supportPhone =
-    process.env.NEXT_PUBLIC_STORE_PHONE?.trim() || "0700 000 000";
-  const supportEmail =
-    process.env.NEXT_PUBLIC_STORE_EMAIL?.trim() ||
-    "support@dukabroilers.co.ke";
+  const supportPhone = process.env.NEXT_PUBLIC_STORE_PHONE?.trim();
+  const supportEmail = process.env.NEXT_PUBLIC_STORE_EMAIL?.trim();
   const whatsappNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "") ||
-    "254700000000";
+    process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "");
 
   return (
     <div className="overflow-hidden bg-[#f8faf7] text-ink">
@@ -373,37 +345,34 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="reviews" className="section-shell py-16 sm:py-20">
+      <section id="service-standards" className="section-shell py-16 sm:py-20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="eyebrow">Buyer feedback</p>
+            <p className="eyebrow">Service standards</p>
             <h2 className="mt-3 font-display text-3xl font-bold text-[#113d24] sm:text-5xl">
-              What commercial buyers value
+              What buyers can expect
             </h2>
           </div>
 
           <p className="max-w-xl text-sm leading-7 text-ink/60">
-            Reviews can be collected from verified completed orders so
-            future buyers can assess service quality and reliability.
+            The ordering experience is designed around clear information,
+            traceable records and practical support—not unverified claims.
           </p>
         </div>
 
         <div className="mt-10 grid gap-5 lg:grid-cols-3">
-          {reviewHighlights.map((review) => (
+          {serviceStandards.map(({ icon: Icon, title, text }) => (
             <article
-              key={review.role}
+              key={title}
               className="rounded-2xl border border-line bg-white p-7 shadow-sm"
             >
-              <Quote size={30} className="text-[#e88900]" />
-              <p className="mt-5 text-base leading-8 text-ink/75">
-                &ldquo;{review.quote}&rdquo;
-              </p>
-              <div className="mt-6 border-t border-line pt-5">
-                <p className="font-bold text-[#113d24]">{review.role}</p>
-                <p className="mt-1 text-xs uppercase tracking-wider text-ink/40">
-                  Example review category
-                </p>
-              </div>
+              <span className="grid h-12 w-12 place-items-center rounded-xl bg-forest/10 text-forest">
+                <Icon size={23} aria-hidden="true" />
+              </span>
+              <h3 className="mt-5 font-display text-xl font-bold text-[#113d24]">
+                {title}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-ink/65">{text}</p>
             </article>
           ))}
         </div>
@@ -455,23 +424,32 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a
-              href={`mailto:${supportEmail}?subject=Duka%20Broilers%20Order%20Concern`}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#f2a317] px-6 py-3 text-sm font-bold text-[#123f25] transition hover:bg-[#ffb31a]"
-            >
-              <MessageCircle size={18} />
-              Report an issue
-            </a>
+            {supportEmail ? (
+              <a
+                href={`mailto:${supportEmail}?subject=Duka%20Broilers%20Order%20Concern`}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#f2a317] px-6 py-3 text-sm font-bold text-[#123f25] transition hover:bg-[#ffb31a]"
+              >
+                <MessageCircle size={18} /> Report an issue
+              </a>
+            ) : (
+              <Link
+                href="/login?next=/account"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#f2a317] px-6 py-3 text-sm font-bold text-[#123f25] transition hover:bg-[#ffb31a]"
+              >
+                <MessageCircle size={18} /> Open customer support
+              </Link>
+            )}
 
-            <a
-              href={`https://wa.me/${whatsappNumber}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-white/20 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10"
-            >
-              <Phone size={18} />
-              WhatsApp support
-            </a>
+            {whatsappNumber && (
+              <a
+                href={`https://wa.me/${whatsappNumber}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-white/20 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+              >
+                <Phone size={18} /> WhatsApp support
+              </a>
+            )}
           </div>
         </div>
       </section>
@@ -499,13 +477,21 @@ export default function LandingPage() {
               Shop products
               <ArrowRight size={17} />
             </Link>
-            <a
-              href={`tel:${supportPhone.replace(/\s/g, "")}`}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[#123f25]/25 bg-white/25 px-6 py-3 text-sm font-bold"
-            >
-              <Phone size={17} />
-              {supportPhone}
-            </a>
+            {supportPhone ? (
+              <a
+                href={`tel:${supportPhone.replace(/\s/g, "")}`}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[#123f25]/25 bg-white/25 px-6 py-3 text-sm font-bold"
+              >
+                <Phone size={17} /> {supportPhone}
+              </a>
+            ) : (
+              <Link
+                href="/register"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[#123f25]/25 bg-white/25 px-6 py-3 text-sm font-bold"
+              >
+                <UsersRound size={17} /> Open buyer account
+              </Link>
+            )}
           </div>
         </div>
       </section>

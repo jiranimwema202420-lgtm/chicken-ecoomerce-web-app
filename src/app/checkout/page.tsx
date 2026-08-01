@@ -321,7 +321,7 @@ export default function CheckoutPage(): React.ReactElement {
           </p>
 
           <Link
-            href="/#products"
+            href="/shop#products"
             className="btn-primary mt-6"
           >
             Browse products

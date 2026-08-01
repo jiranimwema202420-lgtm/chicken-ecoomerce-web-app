@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import HomeCustomerLogin from "@/components/HomeCustomerLogin";
+import CustomerAccessPanel from "@/components/CustomerAccessPanel";
 import { useActiveProducts } from "@/lib/useProducts";
 import {
   buildSearchSuggestions,
@@ -134,19 +134,19 @@ export default function HomePage() {
 
   return (
     <>
-      <section className="section-shell py-10 sm:py-14 lg:py-20">
+      <section className="section-shell py-6 sm:py-8 lg:py-10">
         <div className="hero-glass rounded-[30px] text-white">
-          <div className="relative z-10 grid gap-8 px-6 py-10 sm:px-10 sm:py-14 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:px-16 lg:py-20">
+          <div className="relative z-10 grid gap-8 px-6 py-9 sm:px-10 sm:py-11 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:px-14 lg:py-14">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-marigold-light">
-                Simple Kenyan commerce
+                Duka wholesale catalogue
               </p>
-              <h1 className="mt-4 max-w-3xl font-display text-4xl font-bold leading-[1.05] sm:text-5xl lg:text-6xl">
-                Quality products. Fast checkout. Pay with M-Pesa.
+              <h1 className="mt-4 max-w-3xl font-display text-4xl font-bold leading-[1.05] sm:text-5xl lg:text-[3.5rem]">
+                Fresh wholesale broilers, ready to order.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
-                Discover carefully selected products, add them to your
-                cart, and complete payment securely from your phone.
+                Compare current stock and pricing, add the quantity you need,
+                then choose M-Pesa or pay on delivery where available.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
@@ -165,9 +165,9 @@ export default function HomePage() {
             </div>
 
             <div className="grid gap-4">
-              <HomeCustomerLogin />
+              <CustomerAccessPanel />
 
-              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <div className="grid gap-3 sm:grid-cols-3">
                 {[
                   {
                     icon: Smartphone,
@@ -193,10 +193,10 @@ export default function HomePage() {
                       size={21}
                       className="text-marigold-light"
                     />
-                    <h2 className="mt-3 font-display text-base font-bold">
+                    <h2 className="mt-3 font-display text-sm font-bold sm:text-base">
                       {title}
                     </h2>
-                    <p className="mt-1 text-sm leading-5 text-white/65">
+                    <p className="mt-1 text-xs leading-5 text-white/65 sm:text-sm">
                       {text}
                     </p>
                   </div>
@@ -371,7 +371,15 @@ export default function HomePage() {
         )}
 
         {loading && (
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            className={`mt-8 grid gap-5 ${
+              results.length === 1
+                ? "max-w-xl"
+                : results.length === 2
+                  ? "max-w-5xl sm:grid-cols-2"
+                  : "sm:grid-cols-2 lg:grid-cols-3"
+            }`}
+          >
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="card overflow-hidden">
                 <div className="aspect-[4/3] animate-pulse bg-white/35" />

@@ -24,6 +24,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
 }
 
 body {
@@ -59,6 +60,34 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  transform: translateY(-180%);
+  border-radius: 0.5rem;
+  background: #ffffff;
+  padding: 0.75rem 1rem;
+  color: #0e4b36;
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgb(20 23 18 / 0.18);
+  transition: transform 140ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
 }
 
 @layer components {
@@ -179,6 +208,10 @@ select {
     @apply inline-flex min-h-10 items-center justify-center rounded-md px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-white/55 hover:text-forest;
   }
 
+  .btn-ghost[aria-current="page"] {
+    @apply bg-forest/10 text-forest;
+  }
+
   .input-field {
     @apply min-h-11 w-full rounded-md border border-white/70 bg-white/65 px-3 py-2 text-sm text-ink outline-none backdrop-blur-md transition placeholder:text-ink/35 focus:border-forest/40 focus:bg-white/85 focus:ring-2 focus:ring-forest/15;
     box-shadow:
@@ -198,6 +231,10 @@ select {
 
   .eyebrow {
     @apply text-xs font-bold uppercase tracking-[0.18em] text-forest;
+  }
+
+  .footer-link {
+    @apply rounded-sm text-ink/65 transition hover:text-forest hover:underline hover:underline-offset-4;
   }
 }
 
@@ -237,6 +274,12 @@ select {
   outline-offset: 2px;
 }
 
+@media (max-width: 767px) {
+  body {
+    background-attachment: scroll;
+  }
+}
+
 ::selection {
   background: rgb(226 167 62 / 0.35);
 }
@@ -269,6 +312,19 @@ html.dark .btn-ghost {
 html.dark .btn-ghost:hover {
   background: rgb(255 255 255 / 0.08);
   color: #fff;
+}
+
+html.dark .btn-ghost[aria-current="page"] {
+  background: rgb(240 200 120 / 0.12);
+  color: #f0c878;
+}
+
+html.dark .footer-link {
+  color: rgb(238 245 240 / 0.72);
+}
+
+html.dark .footer-link:hover {
+  color: #f0c878;
 }
 
 html.dark .btn-secondary,

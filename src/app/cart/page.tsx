@@ -19,7 +19,7 @@ export default function CartPage() {
           <p className="mt-3 text-sm leading-6 text-ink/60">
             Browse the collection and add products before checking out.
           </p>
-          <Link href="/#products" className="btn-primary mt-6 gap-2">
+          <Link href="/shop#products" className="btn-primary mt-6 gap-2">
             <ArrowLeft size={17} /> Continue shopping
           </Link>
         </div>
@@ -36,7 +36,7 @@ export default function CartPage() {
           <p className="eyebrow">Your selection</p>
           <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">Shopping cart</h1>
         </div>
-        <Link href="/#products" className="btn-ghost -ml-3 gap-2 sm:ml-0">
+        <Link href="/shop#products" className="btn-ghost -ml-3 gap-2 sm:ml-0">
           <ArrowLeft size={17} /> Keep shopping
         </Link>
       </div>

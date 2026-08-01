@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Minus, Plus, ShoppingBag } from "lucide-react";
+import { CheckCircle2, Eye, Minus, Plus, ShoppingBag } from "lucide-react";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/store/cart-store";
 import posthog from "posthog-js";
@@ -18,6 +18,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const soldOut = product.stock <= 0;
   const quantity = cartLine?.quantity ?? 0;
   const atStockLimit = quantity >= product.stock;
+  const lowStock = product.stock > 0 && product.stock <= 5;
 
   function increaseQuantity() {
     if (soldOut || atStockLimit) return;
@@ -70,6 +71,19 @@ export default function ProductCard({ product }: { product: Product }) {
           {product.category || "Featured"}
         </span>
 
+        {!soldOut && (
+          <span
+            className={`absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+              lowStock
+                ? "bg-amber-50 text-amber-800"
+                : "bg-emerald-50 text-emerald-800"
+            }`}
+          >
+            <CheckCircle2 size={13} aria-hidden="true" />
+            {lowStock ? `Only ${product.stock} left` : "In stock"}
+          </span>
+        )}
+
         {soldOut && (
           <span className="absolute inset-0 grid place-items-center bg-ink/45 text-sm font-bold uppercase tracking-[0.18em] text-white">
             Sold out
@@ -88,15 +102,16 @@ export default function ProductCard({ product }: { product: Product }) {
           {product.description}
         </p>
 
-        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
-          <div>
-            <p className="text-xs text-ink/45">Price</p>
-            <p className="font-display text-xl font-bold text-forest">
-              KES {product.price.toLocaleString("en-KE")}
-            </p>
-          </div>
+        <div className="mt-auto pt-5">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs text-ink/45">Price</p>
+              <p className="font-display text-xl font-bold text-forest">
+                KES {product.price.toLocaleString("en-KE")}
+              </p>
+            </div>
 
-          {quantity > 0 ? (
+            {quantity > 0 ? (
             <div
               className="inline-flex h-11 items-center rounded-md border border-line bg-white p-1"
               aria-label={`${product.name} quantity controls`}
@@ -128,17 +143,27 @@ export default function ProductCard({ product }: { product: Product }) {
                 <Plus size={16} />
               </button>
             </div>
-          ) : (
-            <button
-              type="button"
-              className="grid h-11 w-11 place-items-center rounded-md bg-forest text-white transition hover:bg-forest-light disabled:cursor-not-allowed disabled:bg-ink/20"
-              disabled={soldOut}
-              aria-label={`Add ${product.name} to cart`}
-              onClick={increaseQuantity}
-            >
-              {soldOut ? <ArrowRight size={18} /> : <ShoppingBag size={18} />}
-            </button>
-          )}
+            ) : (
+              <button
+                type="button"
+                className="btn-primary gap-2 px-4"
+                disabled={soldOut}
+                aria-label={`Add ${product.name} to cart`}
+                onClick={increaseQuantity}
+              >
+                <ShoppingBag size={17} aria-hidden="true" />
+                {soldOut ? "Unavailable" : "Add to cart"}
+              </button>
+            )}
+          </div>
+
+          <Link
+            href={`/product/${product.id}`}
+            className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-line bg-white/55 px-4 py-2.5 text-sm font-semibold text-ink/70 transition hover:border-forest/25 hover:bg-white hover:text-forest"
+          >
+            <Eye size={17} aria-hidden="true" />
+            View product details
+          </Link>
         </div>
 
         {!soldOut && quantity > 0 && (

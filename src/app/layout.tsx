@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import "./globals.css";
 
 import Navbar from "@/components/Navbar";
@@ -124,24 +125,50 @@ export default function RootLayout({
       </head>
 
       <body>
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <PwaRegistration />
         <ThemeProvider>
           <AuthProvider>
             <InventorySyncProvider>
               <Navbar />
 
-              <main className="min-h-[calc(100vh-72px)]">
+              <main
+                id="main-content"
+                tabIndex={-1}
+                className="min-h-[calc(100vh-72px)] outline-none"
+              >
                 {children}
               </main>
 
               <footer className="glass-footer border-t">
-                <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm text-ink/60 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-                  <p>
-                    © {new Date().getFullYear()} Duka Broilers. Wholesale
-                    fresh chicken for business.
-                  </p>
+                <div className="section-shell grid gap-8 py-9 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <div>
+                    <p className="font-display text-lg font-bold text-forest">
+                      Duka Broilers
+                    </p>
+                    <p className="mt-2 max-w-xl text-sm leading-6 text-ink/60">
+                      Fresh wholesale chicken for hotels, restaurants,
+                      retailers and institutions. Prices are shown in Kenyan
+                      shillings.
+                    </p>
+                  </div>
 
-                  <p>Wholesale prices are shown in Kenyan shillings.</p>
+                  <nav
+                    aria-label="Footer navigation"
+                    className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold"
+                  >
+                    <Link href="/shop" className="footer-link">Shop</Link>
+                    <Link href="/cart" className="footer-link">Cart</Link>
+                    <Link href="/account" className="footer-link">Account</Link>
+                    <Link href="/settings" className="footer-link">Settings</Link>
+                  </nav>
+
+                  <p className="border-t border-line pt-5 text-xs text-ink/50 sm:col-span-2">
+                    © {new Date().getFullYear()} Duka Broilers. All rights
+                    reserved.
+                  </p>
                 </div>
               </footer>
             </InventorySyncProvider>

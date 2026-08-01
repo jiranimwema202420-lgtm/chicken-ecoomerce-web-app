@@ -283,7 +283,7 @@ export default function AccountPage() {
               <Package className="mx-auto text-ink/30" size={32} />
               <h3 className="mt-3 font-semibold">No orders yet</h3>
               <p className="mt-1 text-sm text-ink/55">Your paid and pending orders will appear here.</p>
-              <Link href="/#products" className="btn-primary mt-5">Start shopping</Link>
+              <Link href="/shop#products" className="btn-primary mt-5">Start shopping</Link>
             </div>
           ) : (
             <div className="mt-6 space-y-4">
