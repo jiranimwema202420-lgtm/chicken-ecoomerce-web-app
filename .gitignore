@@ -11,4 +11,10 @@ out/
 serviceAccountKey.json
 .vercel
 .env*
+!.env.example
+*.backup
+*.backup-*
+*-backup/
+patch-backups/
+*.corrupted-backup.txt
 tsconfig.tsbuildinfo

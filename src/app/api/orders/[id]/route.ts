@@ -1,6 +1,8 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { orderStatusRateLimit } from "@/lib/server/rate-limit";
+import { applySpamGuard } from "@/lib/server/spam-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +25,13 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const blockedResponse = await applySpamGuard(req, {
+    rateLimit: orderStatusRateLimit,
+    namespace: "order-status",
+  });
+
+  if (blockedResponse) return blockedResponse;
+
   const { id } = await context.params;
   const token = req.nextUrl.searchParams.get("token") ?? "";
 

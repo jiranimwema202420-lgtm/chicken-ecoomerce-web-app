@@ -10,6 +10,16 @@ The project follows Semantic Versioning:
 
 ## [Unreleased]
 
+### Security
+
+- Updated Next.js and pinned patched image/CSS processing dependencies.
+- Added rate limits to payment initiation and order-status requests.
+- Verified M-Pesa callback amount, phone, receipt uniqueness, and order linkage
+  before applying payment or inventory changes.
+- Added canonical-role authorization support, revoked-token checks, stricter
+  product upload types, and additional browser security headers.
+- Removed tracked environment and source backup files and expanded ignore rules.
+
 ### Added
 
 - Accessible skip navigation, responsive menu behavior, clearer catalogue

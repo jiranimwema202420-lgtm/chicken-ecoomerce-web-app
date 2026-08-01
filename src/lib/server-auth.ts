@@ -8,10 +8,10 @@ export async function getRequestUser(
   const authorization = request.headers.get("authorization") ?? "";
   const match = authorization.match(/^Bearer\s+(.+)$/i);
 
-  if (!match) return null;
+  if (!match || match[1].length > 8_192) return null;
 
   try {
-    return await adminAuth.verifyIdToken(match[1]);
+    return await adminAuth.verifyIdToken(match[1], true);
   } catch {
     return null;
   }

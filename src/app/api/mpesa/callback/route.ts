@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const resultCode = Number(callback.ResultCode);
     const resultDescription = String(callback.ResultDesc ?? "");
 
-    if (!checkoutRequestId) {
+    if (!/^[A-Za-z0-9_-]{6,128}$/.test(checkoutRequestId)) {
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Ignored" });
     }
 
@@ -74,6 +74,37 @@ export async function POST(req: NextRequest) {
         return;
       }
 
+      const receiptNumber = String(
+        metadataValue("MpesaReceiptNumber") ?? ""
+      ).trim();
+      const paidAmount = Number(metadataValue("Amount"));
+      const paidPhone = String(metadataValue("PhoneNumber") ?? "")
+        .replace(/\D/g, "");
+      const expectedPhone = String(order.phone ?? "").replace(/\D/g, "");
+      const expectedTotal = Number(order.total);
+
+      if (
+        !/^[A-Za-z0-9]{6,64}$/.test(receiptNumber) ||
+        !Number.isFinite(paidAmount) ||
+        !Number.isFinite(expectedTotal) ||
+        Math.abs(paidAmount - expectedTotal) > 0.01 ||
+        (expectedPhone && paidPhone !== expectedPhone)
+      ) {
+        throw new Error("M-Pesa callback metadata did not match the order.");
+      }
+
+      const receiptRef = adminDb
+        .collection("mpesaReceipts")
+        .doc(receiptNumber);
+
+      transaction.create(receiptRef, {
+        orderId: orderRef.id,
+        checkoutRequestId,
+        amount: paidAmount,
+        phone: paidPhone || null,
+        createdAt: now,
+      });
+
       const lines = Array.isArray(order.lines)
         ? (order.lines as CartLine[])
         : [];
@@ -86,9 +117,6 @@ export async function POST(req: NextRequest) {
         productSnapshots.push(await transaction.get(productRef));
       }
 
-      const receiptNumber = String(
-        metadataValue("MpesaReceiptNumber") ?? ""
-      ).trim();
       const shortageLines: Array<{
         productId: string;
         productName: string;
@@ -172,7 +200,7 @@ export async function POST(req: NextRequest) {
         mpesaResultCode: resultCode,
         mpesaResultDescription: resultDescription,
         mpesaReceiptNumber: receiptNumber || null,
-        mpesaPaidAmount: Number(metadataValue("Amount") ?? order.total),
+        mpesaPaidAmount: paidAmount,
         mpesaTransactionDate:
           metadataValue("TransactionDate") ?? null,
         paidAt: now,
@@ -187,11 +215,12 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("M-Pesa callback error:", error);
 
-    // Safaricom expects an acknowledgement even when internal processing
-    // fails; the error remains visible in server logs for investigation.
-    return NextResponse.json({
-      ResultCode: 0,
-      ResultDesc: "Accepted",
-    });
+    return NextResponse.json(
+      {
+        ResultCode: 1,
+        ResultDesc: "Processing failed",
+      },
+      { status: 500 }
+    );
   }
 }

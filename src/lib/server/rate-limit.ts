@@ -74,3 +74,21 @@ export const checkoutRateLimit = redis
       prefix: "duka:checkout",
     })
   : null;
+
+export const paymentApiRateLimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(6, "10 m"),
+      analytics: true,
+      prefix: "duka:payment-api",
+    })
+  : null;
+
+export const orderStatusRateLimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(30, "1 m"),
+      analytics: true,
+      prefix: "duka:order-status",
+    })
+  : null;

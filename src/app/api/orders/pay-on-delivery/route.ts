@@ -13,6 +13,8 @@ import type {
   Product,
 } from "@/lib/types";
 import { getRequestUser } from "@/lib/server-auth";
+import { paymentApiRateLimit } from "@/lib/server/rate-limit";
+import { applySpamGuard } from "@/lib/server/spam-guard";
 
 export const runtime = "nodejs";
 
@@ -76,6 +78,13 @@ function orderNumber(orderId: string, timestamp: number): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const blockedResponse = await applySpamGuard(request, {
+      rateLimit: paymentApiRateLimit,
+      namespace: "pay-on-delivery",
+    });
+
+    if (blockedResponse) return blockedResponse;
+
     if (process.env.PAY_ON_DELIVERY_ENABLED === "false") {
       return NextResponse.json(
         { error: "Pay on delivery is currently unavailable." },

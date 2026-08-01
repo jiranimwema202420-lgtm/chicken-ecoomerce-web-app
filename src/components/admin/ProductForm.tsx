@@ -356,6 +356,8 @@ export default function ProductForm({ product }: Props) {
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">Preview</p>
             <div className="aspect-[4/3] w-full max-w-xs overflow-hidden rounded-lg border border-line bg-line">
+              {/* Blob/local previews are transient and cannot use next/image safely. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 key={previewUrl}
                 src={previewUrl}
@@ -417,5 +419,4 @@ export default function ProductForm({ product }: Props) {
     </form>
   );
 }
-
 

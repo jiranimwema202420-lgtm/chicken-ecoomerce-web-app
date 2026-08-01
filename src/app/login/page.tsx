@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { LogIn,
   Mail } from "lucide-react";
 import {
-  GoogleAuthProvider,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";

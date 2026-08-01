@@ -8,6 +8,8 @@ import {
 } from "@/lib/mpesa";
 import { CartLine, Product } from "@/lib/types";
 import { getRequestUser } from "@/lib/server-auth";
+import { paymentApiRateLimit } from "@/lib/server/rate-limit";
+import { applySpamGuard } from "@/lib/server/spam-guard";
 
 export const runtime = "nodejs";
 
@@ -57,6 +59,13 @@ export async function POST(req: NextRequest) {
   let orderId: string | null = null;
 
   try {
+    const blockedResponse = await applySpamGuard(req, {
+      rateLimit: paymentApiRateLimit,
+      namespace: "mpesa-stkpush",
+    });
+
+    if (blockedResponse) return blockedResponse;
+
     const authenticatedUser = await getRequestUser(req);
     if (!authenticatedUser) {
       return NextResponse.json(
@@ -227,6 +236,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
 
 
