@@ -3,13 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  GoogleAuthProvider,
-  linkWithPopup,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import {
   CheckCircle2,
   LogIn,
@@ -20,6 +14,7 @@ import {
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
+import { signInOrLinkWithGoogle } from "@/lib/google-auth";
 
 function firstName(displayName: string | null, email: string | null): string {
   const name = displayName?.trim();
@@ -67,15 +62,7 @@ export default function HomeCustomerLogin() {
 
     setSubmitting(true);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-
-      if (auth.currentUser?.isAnonymous) {
-        await linkWithPopup(auth.currentUser, provider);
-      } else {
-        await signInWithPopup(auth, provider);
-      }
-
+      await signInOrLinkWithGoogle();
       router.refresh();
     } catch (loginError) {
       setError(getAuthErrorMessage(loginError));
