@@ -36,6 +36,14 @@ export default function HomePage() {
   const [stockFilter, setStockFilter] =
     useState<StockFilter>("all");
   const [sort, setSort] = useState<ProductSort>("relevance");
+  const [featuredSuppliers, setFeaturedSuppliers] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    void fetch("/api/featured-listings")
+      .then(async (response) => response.ok ? response.json() as Promise<{ listings: Array<{ productId: string; supplierName: string }> }> : { listings: [] })
+      .then((data) => setFeaturedSuppliers(Object.fromEntries(data.listings.map((item) => [item.productId, item.supplierName]))))
+      .catch(() => setFeaturedSuppliers({}));
+  }, []);
 
   const categories = useMemo(
     () => [
@@ -117,6 +125,10 @@ export default function HomePage() {
       ),
     [deferredQuery, products]
   );
+  const displayedResults = useMemo(() => {
+    if (sort !== "relevance") return results;
+    return [...results].sort((left, right) => Number(Boolean(featuredSuppliers[right.product.id])) - Number(Boolean(featuredSuppliers[left.product.id])));
+  }, [featuredSuppliers, results, sort]);
 
   const activeFilterCount =
     Number(query.trim().length > 0) +
@@ -431,8 +443,8 @@ export default function HomePage() {
 
         {!loading && results.length > 0 && (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {results.map(({ product }) => (
-              <ProductCard key={product.id} product={product} />
+            {displayedResults.map(({ product }) => (
+              <ProductCard key={product.id} product={product} featuredSupplier={featuredSuppliers[product.id]} />
             ))}
           </div>
         )}

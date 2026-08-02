@@ -9,6 +9,7 @@ import {
   LogOut,
   PlusCircle,
   Store,
+  Star,
 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 
@@ -25,6 +26,7 @@ const links = [
     icon: PlusCircle,
     exact: false,
   },
+  { href: "/supplier/featured-listings", label: "Featured listings", icon: Star, exact: false },
 ];
 
 export default function SupplierSidebar() {

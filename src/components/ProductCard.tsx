@@ -7,7 +7,7 @@ import { Product } from "@/lib/types";
 import { useCartStore } from "@/store/cart-store";
 import posthog from "posthog-js";
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({ product, featuredSupplier }: { product: Product; featuredSupplier?: string }) {
   const cartLine = useCartStore((state) =>
     state.lines.find((line) => line.productId === product.id)
   );
@@ -68,7 +68,7 @@ export default function ProductCard({ product }: { product: Product }) {
         />
 
         <span className="glass-badge absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide">
-          {product.category || "Featured"}
+          {featuredSupplier ? "Sponsored · Featured supplier" : product.category || "Product"}
         </span>
 
         {!soldOut && (

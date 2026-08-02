@@ -7,6 +7,7 @@ import {
   Handshake,
   BadgeDollarSign,
   BadgeCheck,
+  Star,
   LayoutGrid,
   LogOut,
   Package,
@@ -35,6 +36,7 @@ const links = [
     icon: BadgeCheck,
     exact: false,
   },
+  { href: "/admin/featured-listings", label: "Featured listings", icon: Star, exact: false },
   {
     href: "/admin/customers",
     label: "Customers",
