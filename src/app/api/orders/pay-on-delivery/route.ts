@@ -23,6 +23,7 @@ import {
 } from "@/lib/server/order-pricing";
 import { loadMembershipBenefits } from "@/lib/server/membership";
 import { loadActiveFeaturedAttribution } from "@/lib/server/featured-listings";
+import { reserveOrderStock } from "@/lib/server/inventory-reservations";
 
 export const runtime = "nodejs";
 
@@ -75,6 +76,12 @@ function tokenHash(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function orderDocumentId(uid: string, idempotencyKey: string): string {
+  return createHash("sha256")
+    .update(`${uid}:${idempotencyKey}`)
+    .digest("hex");
+}
+
 function orderNumber(orderId: string, timestamp: number): string {
   const date = new Date(timestamp)
     .toISOString()
@@ -110,6 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as Record<string, unknown>;
+    const idempotencyKey = request.headers.get("idempotency-key")?.trim() ?? "";
     const requestedLines = parseRequestedLines(body.lines);
     const deliveryName = cleanString(body.deliveryName, 160);
     const phone = cleanString(body.phone, 40);
@@ -119,6 +127,7 @@ export async function POST(request: NextRequest) {
 
     if (
       !requestedLines ||
+      !/^[A-Fa-f0-9-]{16,64}$/.test(idempotencyKey) ||
       deliveryName.length < 2 ||
       deliveryAddress.length < 8 ||
       !isValidKenyanMobile(phone) ||
@@ -137,7 +146,9 @@ export async function POST(request: NextRequest) {
       1,
       Number(process.env.PAY_ON_DELIVERY_MAX_TOTAL ?? 100000)
     );
-    const orderRef = adminDb.collection("orders").doc();
+    const orderRef = adminDb
+      .collection("orders")
+      .doc(orderDocumentId(authenticatedUser.uid, idempotencyKey));
     const statusToken = randomBytes(32).toString("hex");
     const now = Date.now();
     let verifiedTotal = 0;
@@ -148,6 +159,11 @@ export async function POST(request: NextRequest) {
     const featuredAttribution = await loadActiveFeaturedAttribution(requestedLines.map((line) => line.productId));
 
     await adminDb.runTransaction(async (transaction) => {
+      const existingOrder = await transaction.get(orderRef);
+      if (existingOrder.exists) {
+        throw new Error("This checkout attempt has already been submitted.");
+      }
+
       const productRefs = requestedLines.map(({ productId }) =>
         adminDb.collection("products").doc(productId)
       );
@@ -220,40 +236,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      for (
-        let index = 0;
-        index < productSnapshots.length;
-        index += 1
-      ) {
-        const snapshot = productSnapshots[index];
-        const requested = requestedLines[index];
-        const data = snapshot.data() as Product;
-        const before = Number(data.stock ?? 0);
-        const after = before - requested.quantity;
-        const movementRef = adminDb
-          .collection("inventoryMovements")
-          .doc();
-
-        transaction.update(snapshot.ref, {
-          stock: after,
-          updatedAt: now,
-        });
-
-        transaction.set(movementRef, {
-          type: "manual_adjustment",
-          movementSubType: "pay_on_delivery_reservation",
-          productId: snapshot.id,
-          productName: cleanString(data.name, 160),
-          quantityDelta: -requested.quantity,
-          stockBefore: before,
-          stockAfter: after,
-          reason: `Stock reserved for ${orderNumber(orderRef.id, now)}`,
-          orderId: orderRef.id,
-          channel: "online",
-          createdBy: authenticatedUser.uid,
-          createdAt: now,
-        });
-      }
+      await reserveOrderStock(
+        transaction,
+        orderRef,
+        lines,
+        authenticatedUser.uid,
+        "pay_on_delivery",
+        now,
+      );
 
       transaction.set(orderRef, {
         orderNumber: orderNumber(orderRef.id, now),
@@ -280,6 +270,7 @@ export async function POST(request: NextRequest) {
         featuredAttribution,
         status: "pending_payment",
         stockReserved: true,
+        stockReservationStatus: "reserved",
         stockReservedAt: now,
         statusTokenHash: tokenHash(statusToken),
         createdAt: now,
@@ -317,10 +308,11 @@ export async function POST(request: NextRequest) {
       message.includes("minimum order") ||
       message.includes("delivery zone") ||
       message.includes("limited to KES");
+    const duplicate = message.includes("already been submitted");
 
     return NextResponse.json(
       { error: message },
-      { status: conflict ? 409 : invalidPricing ? 400 : 500 }
+      { status: conflict || duplicate ? 409 : invalidPricing ? 400 : 500 }
     );
   }
 }

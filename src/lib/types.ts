@@ -72,6 +72,12 @@ export interface Order {
   paymentReference?: string | null;
   mpesaCheckoutRequestId?: string;
   mpesaReceiptNumber?: string;
+  stockReserved?: boolean;
+  stockReservationStatus?: "reserved" | "consumed" | "released";
+  stockReservedAt?: number;
+  stockReservationExpiresAt?: number | null;
+  stockReservationReleasedAt?: number;
+  stockReservationConsumedAt?: number;
   createdAt: number;
   updatedAt: number;
 }

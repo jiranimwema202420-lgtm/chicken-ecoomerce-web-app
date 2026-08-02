@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { CartLine, Product } from "@/lib/types";
+import { releaseOrderStock } from "@/lib/server/inventory-reservations";
 
 export const runtime = "nodejs";
 
@@ -65,6 +66,14 @@ export async function POST(req: NextRequest) {
       const now = Date.now();
 
       if (resultCode !== 0) {
+        await releaseOrderStock(
+          transaction,
+          orderRef,
+          order,
+          `M-Pesa payment failed: ${resultDescription || resultCode}`,
+          "mpesa-callback",
+          now,
+        );
         transaction.update(orderRef, {
           status: "failed",
           mpesaResultCode: resultCode,
@@ -108,15 +117,6 @@ export async function POST(req: NextRequest) {
       const lines = Array.isArray(order.lines)
         ? (order.lines as CartLine[])
         : [];
-      const productRefs = lines.map((line) =>
-        adminDb.collection("products").doc(line.productId)
-      );
-      const productSnapshots = [];
-
-      for (const productRef of productRefs) {
-        productSnapshots.push(await transaction.get(productRef));
-      }
-
       const shortageLines: Array<{
         productId: string;
         productName: string;
@@ -125,7 +125,39 @@ export async function POST(req: NextRequest) {
         shortage: number;
       }> = [];
 
-      productSnapshots.forEach((productSnapshot, index) => {
+      if (order.stockReservationStatus === "reserved") {
+        lines.forEach((line) => {
+          transaction.set(adminDb.collection("inventoryMovements").doc(), {
+            type: "online_sale",
+            movementSubType: "mpesa_reservation_consumed",
+            channel: "online",
+            productId: line.productId,
+            productName: line.name,
+            quantityDelta: 0,
+            saleQuantity: line.quantity,
+            shortageQuantity: 0,
+            unitPrice: Number(line.price ?? 0),
+            saleAmount: Number(line.price ?? 0) * line.quantity,
+            orderId: orderRef.id,
+            paymentMethod: "mpesa",
+            paymentReference: receiptNumber,
+            reason: "Reserved stock consumed by confirmed M-Pesa payment.",
+            createdBy: order.userId ?? "mpesa-callback",
+            createdAt: now,
+          });
+        });
+      } else {
+        // Backward compatibility for orders created before reservations shipped.
+        const productRefs = lines.map((line) =>
+          adminDb.collection("products").doc(line.productId)
+        );
+        const productSnapshots = [];
+
+        for (const productRef of productRefs) {
+          productSnapshots.push(await transaction.get(productRef));
+        }
+
+        productSnapshots.forEach((productSnapshot, index) => {
         if (!productSnapshot.exists) return;
 
         const line = lines[index];
@@ -189,11 +221,16 @@ export async function POST(req: NextRequest) {
             shortage,
           });
         }
-      });
+        });
+      }
 
       transaction.update(orderRef, {
         status: "paid",
         channel: "online",
+        stockReserved: false,
+        stockReservationStatus: "consumed",
+        stockReservationExpiresAt: null,
+        stockReservationConsumedAt: now,
         inventoryAppliedAt: now,
         inventoryShortage: shortageLines.length > 0,
         inventoryShortageLines: shortageLines,

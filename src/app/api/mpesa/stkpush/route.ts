@@ -17,6 +17,10 @@ import {
 } from "@/lib/server/order-pricing";
 import { loadMembershipBenefits } from "@/lib/server/membership";
 import { loadActiveFeaturedAttribution } from "@/lib/server/featured-listings";
+import {
+  releaseOrderReservation,
+  reserveOrderStock,
+} from "@/lib/server/inventory-reservations";
 
 export const runtime = "nodejs";
 
@@ -62,6 +66,12 @@ function tokenHash(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function orderDocumentId(uid: string, idempotencyKey: string): string {
+  return createHash("sha256")
+    .update(`${uid}:${idempotencyKey}`)
+    .digest("hex");
+}
+
 function cleanString(value: unknown, maximum: number): string {
   return String(value ?? "").trim().slice(0, maximum);
 }
@@ -86,6 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as Record<string, unknown>;
+    const idempotencyKey = req.headers.get("idempotency-key")?.trim() ?? "";
     const phone = String(body.phone ?? "").trim();
     const requestedLines = parseRequestedLines(body.lines);
     const deliveryName = cleanString(body.deliveryName, 160);
@@ -95,6 +106,7 @@ export async function POST(req: NextRequest) {
 
     if (
       !isValidKenyanMobile(phone) ||
+      !/^[A-Fa-f0-9-]{16,64}$/.test(idempotencyKey) ||
       !requestedLines ||
       deliveryName.length < 2 ||
       deliveryAddress.length < 8 ||
@@ -180,11 +192,27 @@ export async function POST(req: NextRequest) {
     }
 
     const statusToken = randomBytes(32).toString("hex");
-    const orderRef = adminDb.collection("orders").doc();
-    orderId = orderRef.id;
+    const orderRef = adminDb
+      .collection("orders")
+      .doc(orderDocumentId(authenticatedUser.uid, idempotencyKey));
     const now = Date.now();
 
-    await orderRef.set({
+    await adminDb.runTransaction(async (transaction) => {
+      const existingOrder = await transaction.get(orderRef);
+      if (existingOrder.exists) {
+        throw new Error("This checkout attempt has already been submitted.");
+      }
+
+      const reservationExpiresAt = await reserveOrderStock(
+        transaction,
+        orderRef,
+        lines,
+        authenticatedUser.uid,
+        "mpesa",
+        now,
+      );
+
+      transaction.set(orderRef, {
       userId: authenticatedUser.uid,
       customerEmail:
         typeof authenticatedUser.email === "string"
@@ -206,11 +234,18 @@ export async function POST(req: NextRequest) {
       deliveryZoneName: pricingBreakdown.deliveryZoneName,
       pricingBreakdown,
       featuredAttribution,
+      paymentMethod: "mpesa",
       status: "pending_payment",
+      stockReserved: true,
+      stockReservationStatus: "reserved",
+      stockReservedAt: now,
+      stockReservationExpiresAt: reservationExpiresAt,
       statusTokenHash: tokenHash(statusToken),
       createdAt: now,
       updatedAt: now,
+      });
     });
+    orderId = orderRef.id;
 
     const stk = await initiateStkPush({
       phone,
@@ -220,6 +255,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (stk.ResponseCode !== "0") {
+      await releaseOrderReservation(
+        orderRef,
+        "M-Pesa rejected the payment request.",
+        "mpesa-stkpush",
+      );
       await orderRef.update({
         status: "failed",
         failureReason: stk.ResponseDescription || "STK request rejected",
@@ -255,6 +295,13 @@ export async function POST(req: NextRequest) {
       };
     };
 
+    if (
+      error instanceof Error &&
+      error.message === "This checkout attempt has already been submitted."
+    ) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+
     console.error("STK push error details:", {
       message:
         error instanceof Error
@@ -267,6 +314,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (orderId) {
+      await releaseOrderReservation(
+        adminDb.collection("orders").doc(orderId),
+        "M-Pesa payment initialization failed.",
+        "mpesa-stkpush",
+      ).catch((releaseError) =>
+        console.error("Failed to release order reservation:", releaseError)
+      );
       await adminDb
         .collection("orders")
         .doc(orderId)

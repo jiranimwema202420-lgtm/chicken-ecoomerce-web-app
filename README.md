@@ -22,7 +22,10 @@ admin catalogue dashboard.
 - Configurable paid featured supplier product placements with M-Pesa verification and automatic expiry.
 - Transactional supplier commission settlement with outstanding balances, payout references, supplier history, and CSV export.
 - Featured-listing ROI analytics with browser engagement events and server-trusted paid-order revenue attribution.
-- Idempotent M-Pesa callback handling with stock reduction after confirmed payment.
+- Transactional stock reservations for M-Pesa and pay-on-delivery orders, with idempotent consumption and release audit records.
+- Per-attempt checkout idempotency keys prevent duplicate orders and duplicate reservations.
+- Automatic expiry of unpaid M-Pesa reservations after 15 minutes during checkout status polling, plus a protected cleanup route for an external scheduler.
+- Idempotent M-Pesa callback handling without duplicate stock reduction.
 - Firebase email/password admin login with an `admin: true` custom claim.
 - Product create, edit, delete, visibility, stock, pricing, and image upload tools.
 - Hardened Firestore and Storage rules plus the required Firestore index.

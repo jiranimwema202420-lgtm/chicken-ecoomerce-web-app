@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { getAdminRequestUser } from "@/lib/role-auth";
+import { releaseOrderStock } from "@/lib/server/inventory-reservations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -222,6 +223,8 @@ export async function PATCH(request: NextRequest) {
           deliveredAt: now,
           fulfilledAt: now,
           paymentReceivedBy: admin.uid,
+          stockReservationStatus: "consumed",
+          stockReservationConsumedAt: now,
           updatedAt: now,
         });
         return;
@@ -232,47 +235,14 @@ export async function PATCH(request: NextRequest) {
         throw new Error("A paid order cannot be cancelled.");
       }
 
-      const lines = safeLines(order.lines);
-      const productSnapshots = await Promise.all(
-        lines.map((line) =>
-          transaction.get(
-            adminDb.collection("products").doc(line.productId)
-          )
-        )
+      await releaseOrderStock(
+        transaction,
+        orderRef,
+        order,
+        `Stock restored: ${cancellationReason}`,
+        admin.uid,
+        now,
       );
-
-      for (let index = 0; index < lines.length; index += 1) {
-        const line = lines[index];
-        const productSnapshot = productSnapshots[index];
-
-        if (!productSnapshot.exists) continue;
-
-        const before = Number(productSnapshot.data()?.stock ?? 0);
-        const after = before + line.quantity;
-
-        transaction.update(productSnapshot.ref, {
-          stock: after,
-          updatedAt: now,
-        });
-
-        transaction.set(
-          adminDb.collection("inventoryMovements").doc(),
-          {
-            type: "manual_adjustment",
-            movementSubType: "pay_on_delivery_cancellation",
-            productId: line.productId,
-            productName: line.name,
-            quantityDelta: line.quantity,
-            stockBefore: before,
-            stockAfter: after,
-            orderId,
-            channel: "online",
-            reason: `Stock restored: ${cancellationReason}`,
-            createdBy: admin.uid,
-            createdAt: now,
-          }
-        );
-      }
 
       transaction.update(orderRef, {
         status: "cancelled",

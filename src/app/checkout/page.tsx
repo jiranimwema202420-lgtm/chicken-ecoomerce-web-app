@@ -114,6 +114,7 @@ export default function CheckoutPage(): React.ReactElement {
     useState<number | null>(null);
 
   const cancelledRef = useRef(false);
+  const checkoutAttemptKeyRef = useRef(crypto.randomUUID());
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -284,6 +285,7 @@ export default function CheckoutPage(): React.ReactElement {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${idToken}`,
+              "Idempotency-Key": checkoutAttemptKeyRef.current,
             },
             body: JSON.stringify({
               phone,
@@ -304,6 +306,7 @@ export default function CheckoutPage(): React.ReactElement {
           (await response.json()) as MpesaCheckoutResponse;
 
         if (!response.ok) {
+          checkoutAttemptKeyRef.current = crypto.randomUUID();
           throw new Error(
             data.error ||
               "Payment could not be started."
@@ -338,6 +341,7 @@ export default function CheckoutPage(): React.ReactElement {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${idToken}`,
+            "Idempotency-Key": checkoutAttemptKeyRef.current,
           },
           body: JSON.stringify({
             phone,
@@ -358,6 +362,7 @@ export default function CheckoutPage(): React.ReactElement {
         (await response.json()) as PayOnDeliveryResponse;
 
       if (!response.ok) {
+        checkoutAttemptKeyRef.current = crypto.randomUUID();
         throw new Error(
           data.error ||
             "The pay-on-delivery order could not be placed."
