@@ -2,6 +2,10 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "crons": [
-    { "path": "/api/cron/release-stock-reservations", "schedule": "*/5 * * * *" }
+    {
+      "path": "/api/cron/release-stock-reservations",
+      "schedule": "0 0 * * *"
+    }
   ]
 }
+
