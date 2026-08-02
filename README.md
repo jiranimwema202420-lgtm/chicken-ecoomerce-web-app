@@ -20,6 +20,7 @@ admin catalogue dashboard.
 - KES 1,000 monthly business memberships with customer renewal requests and administrator M-Pesa verification.
 - Active business-member checkout benefits: KES 800 minimum order and KES 100 delivery discount.
 - Configurable paid featured supplier product placements with M-Pesa verification and automatic expiry.
+- Transactional supplier commission settlement with outstanding balances, payout references, supplier history, and CSV export.
 - Idempotent M-Pesa callback handling with stock reduction after confirmed payment.
 - Firebase email/password admin login with an `admin: true` custom claim.
 - Product create, edit, delete, visibility, stock, pricing, and image upload tools.

@@ -80,6 +80,12 @@ export async function GET(request: NextRequest) {
     }
     if (matched) completedOrders += 1;
   }
+  const [ledger, payouts] = await Promise.all([
+    adminDb.collection("supplierPayoutLedgers").doc(supplier.id).get(),
+    adminDb.collection("supplierPayouts").where("supplierId", "==", supplier.id).limit(50).get(),
+  ]);
+  const paidCommission = Number(ledger.data()?.paidTotal ?? 0);
+  const payoutHistory = payouts.docs.map((doc) => { const data = doc.data(); return { id: doc.id, amount: Number(data.amount ?? 0), method: String(data.method ?? "mpesa"), reference: String(data.reference ?? ""), status: String(data.status ?? "paid"), createdAt: Number(data.createdAt ?? 0) }; }).sort((a, b) => b.createdAt - a.createdAt).slice(0, 20);
 
   return NextResponse.json({
     supplier,
@@ -89,6 +95,9 @@ export async function GET(request: NextRequest) {
       completedOrders,
       attributedSales: Math.round(attributedSales * 100) / 100,
       accruedCommission: Math.round(accruedCommission * 100) / 100,
+      paidCommission: Math.round(paidCommission * 100) / 100,
+      outstandingCommission: Math.max(0, Math.round((accruedCommission - paidCommission) * 100) / 100),
+      payouts: payoutHistory,
     },
   });
 }

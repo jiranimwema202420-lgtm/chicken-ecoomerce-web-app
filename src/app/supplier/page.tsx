@@ -25,6 +25,9 @@ interface ProfileResponse {
     completedOrders: number;
     attributedSales: number;
     accruedCommission: number;
+    paidCommission: number;
+    outstandingCommission: number;
+    payouts: Array<{ id: string; amount: number; method: string; reference: string; status: string; createdAt: number }>;
   };
 }
 
@@ -172,13 +175,19 @@ export default function SupplierDashboardPage() {
       {profile && (
         <section className="card mt-6 p-6">
           <p className="eyebrow">Commission earnings</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div><p className="text-sm text-ink/55">Completed attributed orders</p><p className="mt-1 font-display text-2xl font-bold">{profile.commissionSummary.completedOrders}</p></div>
             <div><p className="text-sm text-ink/55">Attributed product sales</p><p className="mt-1 font-display text-2xl font-bold">KES {profile.commissionSummary.attributedSales.toLocaleString("en-KE")}</p></div>
             <div><p className="text-sm text-ink/55">Accrued commission</p><p className="mt-1 font-display text-2xl font-bold text-forest">KES {profile.commissionSummary.accruedCommission.toLocaleString("en-KE")}</p></div>
+            <div><p className="text-sm text-ink/55">Paid commission</p><p className="mt-1 font-display text-2xl font-bold">KES {profile.commissionSummary.paidCommission.toLocaleString("en-KE")}</p></div>
+            <div><p className="text-sm text-ink/55">Outstanding balance</p><p className="mt-1 font-display text-2xl font-bold text-marigold-dark">KES {profile.commissionSummary.outstandingCommission.toLocaleString("en-KE")}</p></div>
           </div>
           <p className="mt-4 text-xs leading-5 text-ink/50">Figures include paid and fulfilled orders in the current reporting window. Payment settlement is managed separately by Duka finance.</p>
         </section>
+      )}
+
+      {profile && profile.commissionSummary.payouts.length > 0 && (
+        <section className="card mt-6 divide-y divide-line"><div className="p-5"><h2 className="font-display text-xl font-bold">Commission payout history</h2></div>{profile.commissionSummary.payouts.map((payout) => <div key={payout.id} className="flex flex-wrap justify-between gap-3 p-4 text-sm"><div><p className="font-semibold">{payout.method.toUpperCase()} · {payout.reference}</p><p className="text-xs text-ink/50">{new Date(payout.createdAt).toLocaleDateString("en-KE")}</p></div><p className="font-bold text-forest">KES {payout.amount.toLocaleString("en-KE")}</p></div>)}</section>
       )}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">

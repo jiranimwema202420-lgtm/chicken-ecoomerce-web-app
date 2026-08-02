@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added transactional supplier commission payouts, overpayment protection, supplier balances, audit history, and CSV export.
 - Added configurable paid featured supplier listings with receipt verification, transparent labelling, and automatic expiry.
 - Added server-enforced active-member benefits: KES 800 minimum order and KES 100 delivery discount.
 - Added KES 1,000 monthly business memberships with manual M-Pesa verification, expiry, and revenue reporting.
