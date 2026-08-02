@@ -16,6 +16,7 @@ import {
   loadRevenueSettings,
 } from "@/lib/server/order-pricing";
 import { loadMembershipBenefits } from "@/lib/server/membership";
+import { loadActiveFeaturedAttribution } from "@/lib/server/featured-listings";
 
 export const runtime = "nodejs";
 
@@ -147,10 +148,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const [settings, economics, membership] = await Promise.all([
+    const [settings, economics, membership, featuredAttribution] = await Promise.all([
       loadRevenueSettings(),
       loadProductEconomics(lines.map((line) => line.productId)),
       loadMembershipBenefits(authenticatedUser.uid),
+      loadActiveFeaturedAttribution(lines.map((line) => line.productId)),
     ]);
     let pricingBreakdown;
     try {
@@ -203,6 +205,7 @@ export async function POST(req: NextRequest) {
       deliveryZoneId: pricingBreakdown.deliveryZoneId,
       deliveryZoneName: pricingBreakdown.deliveryZoneName,
       pricingBreakdown,
+      featuredAttribution,
       status: "pending_payment",
       statusTokenHash: tokenHash(statusToken),
       createdAt: now,

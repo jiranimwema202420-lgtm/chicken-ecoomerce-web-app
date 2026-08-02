@@ -38,6 +38,7 @@ const links = [
     exact: false,
   },
   { href: "/admin/featured-listings", label: "Featured listings", icon: Star, exact: false },
+  { href: "/admin/featured-analytics", label: "Featured ROI", icon: BadgeDollarSign, exact: false },
   { href: "/admin/supplier-payouts", label: "Supplier payouts", icon: WalletCards, exact: false },
   {
     href: "/admin/customers",

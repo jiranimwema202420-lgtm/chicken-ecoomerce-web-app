@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { getAdminRequestUser } from "@/lib/role-auth";
-import { loadFeaturedListingSettings } from "@/lib/server/featured-listings";
+import { loadFeaturedListingSettings, loadFeaturedPerformance } from "@/lib/server/featured-listings";
 
 export const dynamic = "force-dynamic";
 const validId = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const admin = await getAdminRequestUser(request); if (!admin) return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
-  const [settings, requests, listings] = await Promise.all([loadFeaturedListingSettings(), adminDb.collection("featuredListingRequests").orderBy("createdAt", "desc").limit(200).get(), adminDb.collection("featuredListings").where("status", "==", "active").limit(100).get()]);
+  const [settings, requests, listings, performance] = await Promise.all([loadFeaturedListingSettings(), adminDb.collection("featuredListingRequests").orderBy("createdAt", "desc").limit(200).get(), adminDb.collection("featuredListings").where("status", "==", "active").limit(100).get(), loadFeaturedPerformance()]);
   const now = Date.now();
-  const items = requests.docs.map((doc) => { const data = doc.data(); return { id: doc.id, supplierName: String(data.supplierName ?? "Supplier"), productName: String(data.productName ?? "Product"), mpesaReceipt: String(data.mpesaReceipt ?? ""), amount: Number(data.amount ?? 0), status: String(data.status ?? "pending"), createdAt: Number(data.createdAt ?? 0) }; });
+  const items = requests.docs.map((doc) => { const data = doc.data(); const metrics = performance.get(doc.id) ?? { orders: 0, attributedRevenue: 0, supplierCommission: 0 }; const fee = Number(data.amount ?? 0); return { id: doc.id, supplierName: String(data.supplierName ?? "Supplier"), productName: String(data.productName ?? "Product"), mpesaReceipt: String(data.mpesaReceipt ?? ""), amount: fee, status: String(data.status ?? "pending"), createdAt: Number(data.createdAt ?? 0), expiresAt: Number(data.expiresAt ?? 0), ...metrics, roas: fee > 0 ? Math.round((metrics.attributedRevenue / fee) * 100) / 100 : 0 }; });
   return NextResponse.json({ settings, requests: items, summary: { pending: items.filter((item) => item.status === "pending").length, active: listings.docs.filter((doc) => Number(doc.data().expiresAt) > now).length, approvedRevenue: items.filter((item) => item.status === "approved").reduce((sum, item) => sum + Number(item.amount ?? 0), 0) } });
 }
 export async function PUT(request: NextRequest): Promise<NextResponse> {

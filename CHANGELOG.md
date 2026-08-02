@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added featured-listing impressions, clicks, server-trusted order attribution, revenue, commission, days remaining, and ROAS reporting.
 - Added transactional supplier commission payouts, overpayment protection, supplier balances, audit history, and CSV export.
 - Added configurable paid featured supplier listings with receipt verification, transparent labelling, and automatic expiry.
 - Added server-enforced active-member benefits: KES 800 minimum order and KES 100 delivery discount.

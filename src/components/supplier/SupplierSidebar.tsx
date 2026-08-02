@@ -27,6 +27,7 @@ const links = [
     exact: false,
   },
   { href: "/supplier/featured-listings", label: "Featured listings", icon: Star, exact: false },
+  { href: "/supplier/featured-analytics", label: "Featured ROI", icon: ClipboardList, exact: false },
 ];
 
 export default function SupplierSidebar() {

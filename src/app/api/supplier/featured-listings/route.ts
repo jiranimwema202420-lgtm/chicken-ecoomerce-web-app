@@ -2,17 +2,17 @@ import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { getSupplierRequestUser } from "@/lib/role-auth";
-import { loadFeaturedListingSettings } from "@/lib/server/featured-listings";
+import { loadFeaturedListingSettings, loadFeaturedPerformance } from "@/lib/server/featured-listings";
 import { paymentApiRateLimit } from "@/lib/server/rate-limit";
 
 export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const user = await getSupplierRequestUser(request);
   if (!user) return NextResponse.json({ error: "Supplier access is required." }, { status: 403 });
-  const [settings, supplier, requests] = await Promise.all([loadFeaturedListingSettings(), adminDb.collection("suppliers").doc(user.uid).get(), adminDb.collection("featuredListingRequests").where("supplierId", "==", user.uid).limit(50).get()]);
+  const [settings, supplier, requests, performance] = await Promise.all([loadFeaturedListingSettings(), adminDb.collection("suppliers").doc(user.uid).get(), adminDb.collection("featuredListingRequests").where("supplierId", "==", user.uid).limit(50).get(), loadFeaturedPerformance()]);
   const productIds = Array.isArray(supplier.data()?.productIds) ? supplier.data()!.productIds : [];
   const products = productIds.length ? await adminDb.getAll(...productIds.slice(0, 100).map((id: string) => adminDb.collection("products").doc(id))) : [];
-  const requestItems = requests.docs.map((doc) => { const data = doc.data(); return { id: doc.id, productName: String(data.productName ?? "Product"), amount: Number(data.amount ?? 0), status: String(data.status ?? "pending"), createdAt: Number(data.createdAt ?? 0) }; }).sort((a, b) => b.createdAt - a.createdAt);
+  const requestItems = requests.docs.map((doc) => { const data = doc.data(); const metrics = performance.get(doc.id) ?? { orders: 0, attributedRevenue: 0, supplierCommission: 0 }; const amount = Number(data.amount ?? 0); return { id: doc.id, productName: String(data.productName ?? "Product"), amount, status: String(data.status ?? "pending"), createdAt: Number(data.createdAt ?? 0), expiresAt: Number(data.expiresAt ?? 0), ...metrics, roas: amount > 0 ? Math.round((metrics.attributedRevenue / amount) * 100) / 100 : 0 }; }).sort((a, b) => b.createdAt - a.createdAt);
   return NextResponse.json({ settings, products: products.filter((doc) => doc.exists).map((doc) => ({ id: doc.id, name: String(doc.data()?.name ?? "Product") })), requests: requestItems });
 }
 

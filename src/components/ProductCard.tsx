@@ -6,6 +6,7 @@ import { CheckCircle2, Eye, Minus, Plus, ShoppingBag } from "lucide-react";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/store/cart-store";
 import posthog from "posthog-js";
+import { useEffect } from "react";
 
 export default function ProductCard({ product, featuredSupplier }: { product: Product; featuredSupplier?: string }) {
   const cartLine = useCartStore((state) =>
@@ -20,6 +21,14 @@ export default function ProductCard({ product, featuredSupplier }: { product: Pr
   const atStockLimit = quantity >= product.stock;
   const lowStock = product.stock > 0 && product.stock <= 5;
 
+  useEffect(() => {
+    if (featuredSupplier) posthog.capture("featured_listing_impression", { product_id: product.id, supplier_name: featuredSupplier });
+  }, [featuredSupplier, product.id]);
+
+  function captureFeaturedClick() {
+    if (featuredSupplier) posthog.capture("featured_listing_clicked", { product_id: product.id, supplier_name: featuredSupplier });
+  }
+
   function increaseQuantity() {
     if (soldOut || atStockLimit) return;
 
@@ -32,6 +41,8 @@ export default function ProductCard({ product, featuredSupplier }: { product: Pr
         product_category: product.category,
         product_price: product.price,
         quantity: Math.min(product.stock, quantity + 1),
+        featured_listing: Boolean(featuredSupplier),
+        featured_supplier: featuredSupplier,
       }
     );
   }
@@ -58,6 +69,7 @@ export default function ProductCard({ product, featuredSupplier }: { product: Pr
       <Link
         href={`/product/${product.id}`}
         className="relative block aspect-[4/3] overflow-hidden bg-white/30"
+        onClick={captureFeaturedClick}
       >
         <Image
           src={product.imageUrl || "/placeholder.svg"}
@@ -92,7 +104,7 @@ export default function ProductCard({ product, featuredSupplier }: { product: Pr
       </Link>
 
       <div className="flex flex-1 flex-col p-4">
-        <Link href={`/product/${product.id}`}>
+        <Link href={`/product/${product.id}`} onClick={captureFeaturedClick}>
           <h2 className="font-display text-lg font-bold leading-snug transition group-hover:text-forest">
             {product.name}
           </h2>

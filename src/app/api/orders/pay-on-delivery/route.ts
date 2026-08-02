@@ -22,6 +22,7 @@ import {
   type PricingBreakdown,
 } from "@/lib/server/order-pricing";
 import { loadMembershipBenefits } from "@/lib/server/membership";
+import { loadActiveFeaturedAttribution } from "@/lib/server/featured-listings";
 
 export const runtime = "nodejs";
 
@@ -144,6 +145,7 @@ export async function POST(request: NextRequest) {
     let verifiedPricing: PricingBreakdown | null = null;
     const settings = await loadRevenueSettings();
     const membership = await loadMembershipBenefits(authenticatedUser.uid);
+    const featuredAttribution = await loadActiveFeaturedAttribution(requestedLines.map((line) => line.productId));
 
     await adminDb.runTransaction(async (transaction) => {
       const productRefs = requestedLines.map(({ productId }) =>
@@ -275,6 +277,7 @@ export async function POST(request: NextRequest) {
         deliveryZoneId: pricingBreakdown.deliveryZoneId,
         deliveryZoneName: pricingBreakdown.deliveryZoneName,
         pricingBreakdown,
+        featuredAttribution,
         status: "pending_payment",
         stockReserved: true,
         stockReservedAt: now,
