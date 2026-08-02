@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import {
   ClipboardList,
+  Boxes,
   LayoutDashboard,
   LogOut,
   PlusCircle,
@@ -28,6 +29,7 @@ const links = [
   },
   { href: "/supplier/featured-listings", label: "Featured listings", icon: Star, exact: false },
   { href: "/supplier/featured-analytics", label: "Featured ROI", icon: ClipboardList, exact: false },
+  { href: "/supplier/inventory-monitoring", label: "Inventory alerts", icon: Boxes, exact: false },
 ];
 
 export default function SupplierSidebar() {

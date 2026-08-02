@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added five-minute reservation cleanup scheduling, cleanup health, inventory alerts, manual release, and audit export.
+
 - Added transactional inventory reservations, checkout and callback idempotency, legacy-order compatibility, cancellation releases, and automated expiry of unpaid M-Pesa reservations.
 - Added featured-listing impressions, clicks, server-trusted order attribution, revenue, commission, days remaining, and ROAS reporting.
 - Added transactional supplier commission payouts, overpayment protection, supplier balances, audit history, and CSV export.

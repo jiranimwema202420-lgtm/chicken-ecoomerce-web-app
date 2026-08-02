@@ -4,21 +4,28 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import {
-  Handshake,
-  BadgeDollarSign,
+  Activity,
   BadgeCheck,
-  Star,
-  WalletCards,
+  BadgeDollarSign,
+  Handshake,
   LayoutGrid,
   LogOut,
-  Package,
+  Package,
+  Star,
   Truck,
   UsersRound,
+  WalletCards,
 } from "lucide-react";
+
 import { auth } from "@/lib/firebase";
 
 const links = [
-  { href: "/admin", label: "Dashboard", icon: LayoutGrid, exact: true },
+  {
+    href: "/admin",
+    label: "Dashboard",
+    icon: LayoutGrid,
+    exact: true,
+  },
   {
     href: "/admin/products",
     label: "Products",
@@ -37,15 +44,37 @@ const links = [
     icon: BadgeCheck,
     exact: false,
   },
-  { href: "/admin/featured-listings", label: "Featured listings", icon: Star, exact: false },
-  { href: "/admin/featured-analytics", label: "Featured ROI", icon: BadgeDollarSign, exact: false },
-  { href: "/admin/supplier-payouts", label: "Supplier payouts", icon: WalletCards, exact: false },
+  {
+    href: "/admin/featured-listings",
+    label: "Featured listings",
+    icon: Star,
+    exact: false,
+  },
+  {
+    href: "/admin/featured-analytics",
+    label: "Featured ROI",
+    icon: BadgeDollarSign,
+    exact: false,
+  },
+  {
+    href: "/admin/supplier-payouts",
+    label: "Supplier payouts",
+    icon: WalletCards,
+    exact: false,
+  },
+  {
+    href: "/admin/inventory-monitoring",
+    label: "Inventory monitoring",
+    icon: Activity,
+    exact: false,
+  },
   {
     href: "/admin/customers",
     label: "Customers",
     icon: UsersRound,
     exact: false,
-  },  {
+  },
+  {
     href: "/admin/suppliers",
     label: "Suppliers",
     icon: Handshake,
@@ -56,17 +85,25 @@ const links = [
     label: "Pay on delivery",
     icon: Truck,
     exact: false,
-  },];
+  },
+];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.replace("/admin/login");
+  };
+
   return (
     <aside className="w-full shrink-0 lg:w-52">
       <nav className="card flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-24 lg:flex-col">
         {links.map(({ href, label, icon: Icon, exact }) => {
-          const active = exact ? pathname === href : pathname.startsWith(href);
+          const active = exact
+            ? pathname === href
+            : pathname.startsWith(href);
 
           return (
             <Link
@@ -78,20 +115,19 @@ export default function AdminSidebar() {
                   : "text-ink/65 hover:bg-white/55 hover:text-forest"
               }`}
             >
-              <Icon size={17} /> {label}
+              <Icon size={17} aria-hidden="true" />
+              <span>{label}</span>
             </Link>
           );
         })}
 
         <button
           type="button"
-          onClick={async () => {
-            await signOut(auth);
-            router.replace("/admin/login");
-          }}
+          onClick={handleSignOut}
           className="flex min-w-fit items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50/80 lg:mt-2"
         >
-          <LogOut size={17} /> Sign out
+          <LogOut size={17} aria-hidden="true" />
+          <span>Sign out</span>
         </button>
       </nav>
     </aside>

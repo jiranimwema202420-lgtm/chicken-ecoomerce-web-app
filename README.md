@@ -1,4 +1,4 @@
-# Duka — Next.js E-commerce with M-Pesa
+# Duka â€” Next.js E-commerce with M-Pesa
 
 Duka is a production-oriented Kenyan e-commerce starter built with Next.js 15,
 React 19, Tailwind CSS, Firebase, and Safaricom Daraja STK Push. It includes a
@@ -103,7 +103,7 @@ Fill every required value in `.env.local`. Never commit that file.
 
 1. In Firebase Authentication, enable **Email/Password**, **Google**, and
    **Anonymous** providers.
-2. Under Authentication → Settings → Authorized domains, include `localhost`
+2. Under Authentication â†’ Settings â†’ Authorized domains, include `localhost`
    for development and your Vercel/custom production domain.
 3. Create a Firestore database and a Firebase Storage bucket.
 4. Create a Firebase Web App and copy its values into the
@@ -176,16 +176,16 @@ Open `http://localhost:3000`.
 
 Useful routes:
 
-- `/` — storefront
-- `/cart` — shopping cart
-- `/checkout` — M-Pesa checkout with signed-in or anonymous guest identity
-- `/login` — customer sign-in
-- `/register` — customer registration
-- `/forgot-password` — password reset
-- `/account` — profile, email verification, sign-out, and order history
-- `/admin/login` — administrator sign-in
-- `/admin/products` — product management
-- `/admin/revenue` — private costs, delivery pricing, minimum orders, and profit estimates
+- `/` â€” storefront
+- `/cart` â€” shopping cart
+- `/checkout` â€” M-Pesa checkout with signed-in or anonymous guest identity
+- `/login` â€” customer sign-in
+- `/register` â€” customer registration
+- `/forgot-password` â€” password reset
+- `/account` â€” profile, email verification, sign-out, and order history
+- `/admin/login` â€” administrator sign-in
+- `/admin/products` â€” product management
+- `/admin/revenue` â€” private costs, delivery pricing, minimum orders, and profit estimates
 
 ## Local Firestore emulator
 
@@ -303,3 +303,7 @@ Review and replace these defaults in `/admin/revenue` before taking live orders.
 Before high-volume use, add request rate limiting, order reservation/release for
 competing checkouts, delivery-address and fulfilment workflows, receipt messages,
 observability, and automated integration tests against Daraja sandbox.
+
+## Inventory monitoring
+
+Vercel Cron calls /api/cron/release-stock-reservations every five minutes using CRON_SECRET. Administrators can monitor available and reserved units, release expired reservations manually, and export the server-only inventory audit. Suppliers see alerts only for products assigned to their active profile.
