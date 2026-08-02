@@ -57,6 +57,9 @@ export interface Order {
     currency: "KES";
     subtotal: number;
     deliveryFee: number;
+    standardDeliveryFee?: number;
+    membershipDeliveryDiscount?: number;
+    membershipActive?: boolean;
     total: number;
     minimumOrder: number;
     estimatedProductCost: number;

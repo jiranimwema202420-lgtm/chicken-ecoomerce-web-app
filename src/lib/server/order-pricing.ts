@@ -2,6 +2,7 @@ import "server-only";
 
 import { adminDb } from "@/lib/firebaseAdmin";
 import type { CartLine } from "@/lib/types";
+import type { MembershipBenefits } from "@/lib/server/membership";
 
 export type DeliveryZone = {
   id: string;
@@ -45,6 +46,9 @@ export type PricingBreakdown = {
   currency: "KES";
   subtotal: number;
   deliveryFee: number;
+  standardDeliveryFee: number;
+  membershipDeliveryDiscount: number;
+  membershipActive: boolean;
   total: number;
   minimumOrder: number;
   deliveryZoneId: string;
@@ -195,6 +199,7 @@ export function calculatePricing(
   settings: RevenueSettings,
   economics: Map<string, ProductEconomics>,
   paymentMethod: "mpesa" | "pay_on_delivery",
+  membership?: MembershipBenefits,
 ): PricingBreakdown {
   const zone = settings.zones.find((item) => item.id === zoneId && item.active);
   if (!zone) throw new Error("Select an available delivery zone.");
@@ -202,7 +207,10 @@ export function calculatePricing(
   const subtotal = money(
     lines.reduce((sum, line) => sum + line.price * line.quantity, 0),
   );
-  const minimumOrder = Math.max(settings.defaultMinimumOrder, zone.minimumOrder);
+  const membershipActive = membership?.active === true;
+  const minimumOrder = membershipActive
+    ? membership.minimumOrder
+    : Math.max(settings.defaultMinimumOrder, zone.minimumOrder);
 
   if (subtotal < minimumOrder) {
     throw new Error(
@@ -210,10 +218,14 @@ export function calculatePricing(
     );
   }
 
-  const deliveryFee =
+  const standardDeliveryFee =
     zone.freeDeliveryThreshold > 0 && subtotal >= zone.freeDeliveryThreshold
       ? 0
       : zone.deliveryFee;
+  const membershipDeliveryDiscount = membershipActive
+    ? Math.min(standardDeliveryFee, membership.deliveryDiscount)
+    : 0;
+  const deliveryFee = money(standardDeliveryFee - membershipDeliveryDiscount);
   const estimatedProductCost = money(
     lines.reduce(
       (sum, line) => sum + (economics.get(line.productId)?.landedCost ?? 0) * line.quantity,
@@ -261,6 +273,9 @@ export function calculatePricing(
     currency: "KES",
     subtotal,
     deliveryFee,
+    standardDeliveryFee,
+    membershipDeliveryDiscount,
+    membershipActive,
     total,
     minimumOrder,
     deliveryZoneId: zone.id,

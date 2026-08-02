@@ -64,6 +64,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       result.paymentCosts += money(breakdown?.estimatedPaymentCost) ?? 0;
       result.estimatedGrossProfit += signedAmount(breakdown?.estimatedGrossProfit);
       result.supplierCommissions += money(breakdown?.estimatedSupplierCommission) ?? 0;
+      const memberSaving = money(breakdown?.membershipDeliveryDiscount) ?? 0;
+      result.membershipSavings += memberSaving;
+      if (breakdown?.membershipActive === true) result.memberOrders += 1;
       const commissions = Array.isArray(breakdown?.supplierCommissions) ? breakdown.supplierCommissions : [];
       for (const item of commissions) {
         if (!item || typeof item !== "object") continue;
@@ -79,7 +82,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       if (userId) completedOrdersByCustomer.set(userId, (completedOrdersByCustomer.get(userId) ?? 0) + 1);
       return result;
     },
-    { orders: 0, revenue: 0, deliveryRevenue: 0, paymentCosts: 0, supplierCommissions: 0, estimatedGrossProfit: 0 },
+    { orders: 0, revenue: 0, deliveryRevenue: 0, paymentCosts: 0, supplierCommissions: 0, membershipSavings: 0, memberOrders: 0, estimatedGrossProfit: 0 },
   );
 
   const uniqueCustomers = completedOrdersByCustomer.size;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { loadRevenueSettings } from "@/lib/server/order-pricing";
+import { MEMBER_DELIVERY_DISCOUNT, MEMBER_MINIMUM_ORDER } from "@/lib/server/membership";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,8 @@ export async function GET(): Promise<NextResponse> {
       {
         currency: settings.currency,
         defaultMinimumOrder: settings.defaultMinimumOrder,
+        memberMinimumOrder: MEMBER_MINIMUM_ORDER,
+        memberDeliveryDiscount: MEMBER_DELIVERY_DISCOUNT,
         zones: settings.zones
           .filter((zone) => zone.active)
           .map((zone) => ({

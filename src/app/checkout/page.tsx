@@ -24,6 +24,7 @@ import PaymentMethodSelector, {
   type CheckoutPaymentMethod,
 } from "@/components/checkout/PaymentMethodSelector";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
+import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { useAuth } from "@/lib/auth-context";
 import {
   auth,
@@ -65,6 +66,8 @@ interface PublicDeliveryZone {
 interface PricingConfiguration {
   currency: "KES";
   defaultMinimumOrder: number;
+  memberMinimumOrder: number;
+  memberDeliveryDiscount: number;
   zones: PublicDeliveryZone[];
 }
 
@@ -99,6 +102,7 @@ export default function CheckoutPage(): React.ReactElement {
   const [deliveryZoneId, setDeliveryZoneId] = useState("");
   const [pricingConfiguration, setPricingConfiguration] =
     useState<PricingConfiguration | null>(null);
+  const [activeMembership, setActiveMembership] = useState(false);
 
   // Honeypot field. Real customers should never complete this field.
   const [companyWebsite, setCompanyWebsite] = useState("");
@@ -118,6 +122,20 @@ export default function CheckoutPage(): React.ReactElement {
       cancelledRef.current = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!user || isGuest) {
+      setActiveMembership(false);
+      return;
+    }
+    void authenticatedFetch("/api/membership")
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { membership?: { status?: string } };
+      })
+      .then((data) => setActiveMembership(data?.membership?.status === "active"))
+      .catch(() => setActiveMembership(false));
+  }, [isGuest, user]);
 
   useEffect(() => {
     if (!deliveryName && user?.displayName) {
@@ -402,12 +420,16 @@ export default function CheckoutPage(): React.ReactElement {
     (zone) => zone.id === deliveryZoneId,
   );
   const cartSubtotal = total();
-  const estimatedDeliveryFee = selectedZone
+  const standardEstimatedDeliveryFee = selectedZone
     ? selectedZone.freeDeliveryThreshold > 0 &&
       cartSubtotal >= selectedZone.freeDeliveryThreshold
       ? 0
       : selectedZone.deliveryFee
     : 0;
+  const membershipDeliveryDiscount = activeMembership
+    ? Math.min(standardEstimatedDeliveryFee, pricingConfiguration?.memberDeliveryDiscount ?? 0)
+    : 0;
+  const estimatedDeliveryFee = standardEstimatedDeliveryFee - membershipDeliveryDiscount;
   const displayedTotal = verifiedTotal ?? cartSubtotal + estimatedDeliveryFee;
 
   const payOnDelivery =
@@ -554,11 +576,12 @@ export default function CheckoutPage(): React.ReactElement {
                     </select>
                     {selectedZone && (
                       <p className="mt-2 text-xs leading-5 text-ink/55">
-                        Minimum order: KES {Math.max(
-                          pricingConfiguration?.defaultMinimumOrder ?? 0,
-                          selectedZone.minimumOrder,
+                        Minimum order: KES {(activeMembership
+                          ? pricingConfiguration?.memberMinimumOrder ?? 0
+                          : Math.max(pricingConfiguration?.defaultMinimumOrder ?? 0, selectedZone.minimumOrder)
                         ).toLocaleString("en-KE")}. Free delivery from KES{" "}
                         {selectedZone.freeDeliveryThreshold.toLocaleString("en-KE")}.
+                        {activeMembership && " Active-member pricing applied."}
                       </p>
                     )}
                   </div>
@@ -651,6 +674,12 @@ export default function CheckoutPage(): React.ReactElement {
                     {estimatedDeliveryFee === 0 ? "Free" : `KES ${estimatedDeliveryFee.toLocaleString("en-KE")}`}
                   </strong>
                 </div>
+                {membershipDeliveryDiscount > 0 && (
+                  <div className="mt-2 flex justify-between gap-4 text-forest">
+                    <span>Member delivery saving</span>
+                    <strong>− KES {membershipDeliveryDiscount.toLocaleString("en-KE")}</strong>
+                  </div>
+                )}
                 <p className="mt-3 border-t border-line pt-3 text-xs text-ink/50">
                   The server verifies products, minimum order and delivery pricing before payment.
                 </p>

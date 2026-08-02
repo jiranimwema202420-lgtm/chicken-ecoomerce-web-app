@@ -21,6 +21,7 @@ import {
   loadRevenueSettings,
   type PricingBreakdown,
 } from "@/lib/server/order-pricing";
+import { loadMembershipBenefits } from "@/lib/server/membership";
 
 export const runtime = "nodejs";
 
@@ -142,6 +143,7 @@ export async function POST(request: NextRequest) {
     let verifiedLines: CartLine[] = [];
     let verifiedPricing: PricingBreakdown | null = null;
     const settings = await loadRevenueSettings();
+    const membership = await loadMembershipBenefits(authenticatedUser.uid);
 
     await adminDb.runTransaction(async (transaction) => {
       const productRefs = requestedLines.map(({ productId }) =>
@@ -200,6 +202,7 @@ export async function POST(request: NextRequest) {
         settings,
         economics,
         "pay_on_delivery",
+        membership,
       );
       const total = pricingBreakdown.total;
 

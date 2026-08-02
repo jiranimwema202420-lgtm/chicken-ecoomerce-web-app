@@ -49,6 +49,8 @@ type RevenueResponse = {
     paymentCosts: number;
     estimatedGrossProfit: number;
     supplierCommissions: number;
+    membershipSavings: number;
+    memberOrders: number;
     uniqueCustomers: number;
     repeatCustomers: number;
     repeatCustomerRate: number;
@@ -138,6 +140,8 @@ export default function RevenuePage(): React.ReactElement {
     ["Estimated payment costs", formatMoney(data.summary.paymentCosts)],
     ["Estimated gross profit", formatMoney(data.summary.estimatedGrossProfit)],
     ["Supplier commissions", formatMoney(data.summary.supplierCommissions)],
+    ["Member orders", data.summary.memberOrders.toLocaleString("en-KE")],
+    ["Member delivery savings", formatMoney(data.summary.membershipSavings)],
     ["Unique customers", data.summary.uniqueCustomers.toLocaleString("en-KE")],
     ["Repeat customers", `${data.summary.repeatCustomers.toLocaleString("en-KE")} (${data.summary.repeatCustomerRate.toFixed(1)}%)`],
   ];

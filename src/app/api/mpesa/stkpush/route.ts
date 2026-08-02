@@ -15,6 +15,7 @@ import {
   loadProductEconomics,
   loadRevenueSettings,
 } from "@/lib/server/order-pricing";
+import { loadMembershipBenefits } from "@/lib/server/membership";
 
 export const runtime = "nodejs";
 
@@ -146,9 +147,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const [settings, economics] = await Promise.all([
+    const [settings, economics, membership] = await Promise.all([
       loadRevenueSettings(),
       loadProductEconomics(lines.map((line) => line.productId)),
+      loadMembershipBenefits(authenticatedUser.uid),
     ]);
     let pricingBreakdown;
     try {
@@ -158,6 +160,7 @@ export async function POST(req: NextRequest) {
         settings,
         economics,
         "mpesa",
+        membership,
       );
     } catch (error) {
       return NextResponse.json(
