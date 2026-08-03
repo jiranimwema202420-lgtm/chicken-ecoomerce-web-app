@@ -5,11 +5,116 @@ import { releaseOrderStock } from "@/lib/server/inventory-reservations";
 
 export const LOW_STOCK_THRESHOLD = 5;
 export const CLEANUP_BATCH_SIZE = 50;
+export const OPPORTUNISTIC_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+export const OPPORTUNISTIC_CLEANUP_LOCK_MS = 2 * 60 * 1000;
 
 type OrderLine = {
   productId?: unknown;
   quantity?: unknown;
 };
+
+export type OpportunisticCleanupResult =
+  | {
+      status: "completed";
+      trigger: string;
+      cleanup: Awaited<ReturnType<typeof releaseExpiredReservations>>;
+    }
+  | {
+      status: "skipped";
+      trigger: string;
+      reason: "recently_run_or_locked";
+    }
+  | {
+      status: "failed";
+      trigger: string;
+      message: string;
+    };
+
+export async function runOpportunisticInventoryCleanup(
+  actorId: string,
+  trigger: string,
+): Promise<OpportunisticCleanupResult> {
+  const now = Date.now();
+
+  const gateReference = adminDb
+    .collection("systemOperations")
+    .doc("opportunisticInventoryCleanup");
+
+  try {
+    const acquired = await adminDb.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(gateReference);
+      const data = snapshot.data() ?? {};
+
+      const nextAllowedAt = Number(data.nextAllowedAt ?? 0);
+      const lockedUntil = Number(data.lockedUntil ?? 0);
+
+      if (nextAllowedAt > now || lockedUntil > now) {
+        return false;
+      }
+
+      transaction.set(
+        gateReference,
+        {
+          status: "running",
+          trigger,
+          actorId,
+          startedAt: now,
+          lockedUntil: now + OPPORTUNISTIC_CLEANUP_LOCK_MS,
+          nextAllowedAt: now + OPPORTUNISTIC_CLEANUP_INTERVAL_MS,
+        },
+        { merge: true },
+      );
+
+      return true;
+    });
+
+    if (!acquired) {
+      return {
+        status: "skipped",
+        trigger,
+        reason: "recently_run_or_locked",
+      };
+    }
+
+    const cleanup = await releaseExpiredReservations(actorId);
+
+    const completedAt = Date.now();
+
+    await gateReference.set(
+      {
+        status: cleanup.status,
+        trigger,
+        actorId,
+        completedAt,
+        lockedUntil: 0,
+      },
+      { merge: true },
+    );
+
+    return {
+      status: "completed",
+      trigger,
+      cleanup,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message.slice(0, 240)
+        : "Unknown cleanup failure";
+
+    console.error("Opportunistic inventory cleanup failed", {
+      actorId,
+      trigger,
+      error,
+    });
+
+    return {
+      status: "failed",
+      trigger,
+      message,
+    };
+  }
+}
 
 export async function releaseExpiredReservations(actorId: string) {
   const startedAt = Date.now();
@@ -251,4 +356,3 @@ export async function getInventoryAuditCsv() {
 
   return rows.map((row) => row.map(escapeCsvValue).join(",")).join("\r\n");
 }
-

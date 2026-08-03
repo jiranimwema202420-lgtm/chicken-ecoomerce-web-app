@@ -1,0 +1,126 @@
+import "server-only";
+
+import { adminDb } from "@/lib/firebaseAdmin";
+import { releaseOrderStock } from "@/lib/server/inventory-reservations";
+
+export const LOW_STOCK_THRESHOLD = 5;
+export const CLEANUP_BATCH_SIZE = 50;
+
+type OrderLine = {
+  productId?: unknown;
+  quantity?: unknown;
+};
+
+export async function releaseExpiredReservations(actorId: string) {
+  const startedAt = Date.now();
+
+  const snapshot = await adminDb
+    .collection("orders")
+    .where("stockReservationExpiresAt", "<=", startedAt)
+    .limit(CLEANUP_BATCH_SIZE)
+    .get();
+
+  let released = 0;
+  let skipped = 0;
+
+  const failures: Array<{
+    orderId: string;
+    message: string;
+  }> = [];
+
+  for (const document of snapshot.docs) {
+    try {
+      const didRelease = await adminDb.runTransaction(
+        async (transaction) => {
+          const current = await transaction.get(document.ref);
+
+          if (!current.exists) {
+            return false;
+          }
+
+          const order = current.data() ?? {};
+
+          const isExpiredReservation =
+            order.status === "pending_payment" &&
+            order.stockReservationStatus === "reserved" &&
+            Number(order.stockReservationExpiresAt ?? 0) <= startedAt;
+
+          if (!isExpiredReservation) {
+            return false;
+          }
+
+          const result = await releaseOrderStock(
+            transaction,
+            document.ref,
+            order,
+            "M-Pesa reservation expired before payment confirmation.",
+            actorId,
+            startedAt,
+          );
+
+          if (result) {
+            transaction.update(document.ref, {
+              status: "failed",
+              failureReason: "payment_reservation_expired",
+              updatedAt: startedAt,
+            });
+          }
+
+          return result;
+        },
+      );
+
+      if (didRelease) {
+        released += 1;
+      } else {
+        skipped += 1;
+      }
+    } catch (error) {
+      failures.push({
+        orderId: document.id,
+        message:
+          error instanceof Error
+            ? error.message.slice(0, 240)
+            : "Unknown cleanup error",
+      });
+    }
+  }
+
+  const completedAt = Date.now();
+  const status = failures.length > 0 ? "degraded" : "healthy";
+
+    const result = {
+    status,
+    checked: snapshot.size,
+    released,
+    skipped,
+    failed: failures.length,
+    failures,
+    startedAt,
+    completedAt,
+    durationMs: completedAt - startedAt,
+    actorId,
+  };
+
+  await adminDb
+    .collection("systemOperations")
+    .doc("inventoryCleanup")
+    .set(
+      failures.length > 0
+        ? result
+        : {
+            ...result,
+            lastSuccessfulAt: completedAt,
+          },
+      { merge: true },
+    );
+
+  await adminDb.collection("inventoryCleanupRuns").add(result);
+
+  return result;
+}
+
+runOpportunisticInventoryCleanup()
+getInventoryOverview()
+getInventoryAuditCsv()
+
