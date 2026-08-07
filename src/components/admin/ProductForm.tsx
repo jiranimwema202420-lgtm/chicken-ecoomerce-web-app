@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth, db, isFirebaseConfigured, storage } from "@/lib/firebase";
 import { Product } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 
@@ -13,10 +13,47 @@ interface Props {
 }
 
 type ImageSource = "link" | "upload";
+type StorageCheckState = "idle" | "checking" | "ok" | "error";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const FALLBACK_IMAGE = "/placeholder.svg";
 const UPLOAD_TIMEOUT_MS = 90_000;
+const STALLED_UPLOAD_TIMEOUT_MS = 20_000;
+const STORAGE_PREFLIGHT_TIMEOUT_MS = 10_000;
+
+function normalizeStorageBucket(value: string | undefined): string {
+  const bucket = (value ?? "").trim();
+
+  if (!bucket) {
+    return "";
+  }
+
+  return bucket.replace(/^gs:\/\//, "");
+}
+
+async function assertStorageReachable(bucket: string): Promise<void> {
+  if (!bucket) {
+    throw new Error("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is missing. Use Image link/path or configure Firebase Storage.");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), STORAGE_PREFLIGHT_TIMEOUT_MS);
+
+  try {
+    const probeUrl = `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o?maxResults=1`;
+    await fetch(probeUrl, {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch {
+    throw new Error(
+      "Could not reach Firebase Storage from this browser. Use Image link/path, or check network/firewall and Firebase Storage setup."
+    );
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 function firebaseErrorMessage(error: unknown): string {
   if (error && typeof error === "object" && "code" in error) {
@@ -83,6 +120,7 @@ export default function ProductForm({ product }: Props) {
   const router = useRouter();
   const { isAdmin } = useAuth();
   const submittingRef = useRef(false);
+  const canUploadToFirebaseStorage = isFirebaseConfigured;
   const initialImageUrl = product?.imageUrl && product.imageUrl !== FALLBACK_IMAGE ? product.imageUrl : "";
 
   const [name, setName] = useState(product?.name ?? "");
@@ -99,6 +137,8 @@ export default function ProductForm({ product }: Props) {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [storageCheckState, setStorageCheckState] = useState<StorageCheckState>("idle");
+  const [storageCheckMessage, setStorageCheckMessage] = useState("");
 
   useEffect(() => {
     return () => {
@@ -106,10 +146,42 @@ export default function ProductForm({ product }: Props) {
     };
   }, [preview]);
 
+  async function testStorageConnection() {
+    if (!canUploadToFirebaseStorage) {
+      setStorageCheckState("error");
+      setStorageCheckMessage("Firebase Storage is not configured in this environment.");
+      return;
+    }
+
+    setStorageCheckState("checking");
+    setStorageCheckMessage("Checking Firebase Storage...");
+
+    try {
+      const storageBucket = normalizeStorageBucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+      await assertStorageReachable(storageBucket);
+      setStorageCheckState("ok");
+      setStorageCheckMessage("Firebase Storage is reachable from this browser.");
+    } catch (storageCheckError) {
+      setStorageCheckState("error");
+      setStorageCheckMessage(firebaseErrorMessage(storageCheckError));
+    }
+  }
+
   function selectImageSource(source: ImageSource) {
+    if (source === "upload" && !canUploadToFirebaseStorage) {
+      setImageSource("link");
+      setError("Firebase Storage is not configured. Use Image link/path until Firebase Storage is initialized.");
+      setPreviewFailed(false);
+      return;
+    }
+
     setImageSource(source);
     setError("");
     setPreviewFailed(false);
+
+    if (source === "upload") {
+      void testStorageConnection();
+    }
 
     if (source === "link") {
       if (preview.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -158,8 +230,14 @@ export default function ProductForm({ product }: Props) {
 
   async function uploadSelectedImage(): Promise<string> {
     if (!imageFile) return product?.imageUrl || FALLBACK_IMAGE;
+    if (!canUploadToFirebaseStorage) {
+      throw new Error("Firebase Storage is not configured. Use Image link/path or configure NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET.");
+    }
 
-    setStatus("Uploading imageâ€¦ 0%");
+    const storageBucket = normalizeStorageBucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+    await assertStorageReachable(storageBucket);
+
+    setStatus("Uploading image... 0%");
     const safeFileName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "-");
     const storageRef = ref(storage, `products/${Date.now()}-${safeFileName}`);
     const uploadTask = uploadBytesResumable(storageRef, imageFile, {
@@ -169,11 +247,28 @@ export default function ProductForm({ product }: Props) {
 
     return new Promise<string>((resolve, reject) => {
       let settled = false;
+      let lastTransferred = 0;
+      let stalledTimeoutId = 0;
+
+      const armStalledGuard = () => {
+        window.clearTimeout(stalledTimeoutId);
+        stalledTimeoutId = window.setTimeout(() => {
+          finish(() => {
+            uploadTask.cancel();
+            reject(
+              new Error(
+                "The image upload is stalled at 0%. Check your internet connection or Firebase Storage setup, then try again."
+              )
+            );
+          });
+        }, STALLED_UPLOAD_TIMEOUT_MS);
+      };
 
       const finish = (callback: () => void) => {
         if (settled) return;
         settled = true;
         window.clearTimeout(timeoutId);
+        window.clearTimeout(stalledTimeoutId);
         callback();
       };
 
@@ -188,13 +283,20 @@ export default function ProductForm({ product }: Props) {
         });
       }, UPLOAD_TIMEOUT_MS);
 
+      armStalledGuard();
+
       uploadTask.on(
         "state_changed",
         (snapshot) => {
+          if (snapshot.bytesTransferred > lastTransferred) {
+            lastTransferred = snapshot.bytesTransferred;
+            armStalledGuard();
+          }
+
           const progress = snapshot.totalBytes
             ? Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
             : 0;
-          setStatus(`Uploading imageâ€¦ ${progress}%`);
+          setStatus(`Uploading image... ${progress}%`);
         },
         (uploadError) => finish(() => reject(uploadError)),
         () => {
@@ -246,7 +348,7 @@ export default function ProductForm({ product }: Props) {
         imageUrl = imageFile ? await uploadSelectedImage() : product?.imageUrl || FALLBACK_IMAGE;
       }
 
-      setStatus(product ? "Updating productâ€¦" : "Creating productâ€¦");
+      setStatus(product ? "Updating product..." : "Creating product...");
       const now = Date.now();
       const data = {
         name: cleanName,
@@ -268,7 +370,7 @@ export default function ProductForm({ product }: Props) {
         });
       }
 
-      setStatus("Product saved. Returning to catalogueâ€¦");
+      setStatus("Product saved. Returning to catalogue...");
       router.replace("/admin/products");
     } catch (saveError) {
       console.error("Product save failed:", saveError);
@@ -311,12 +413,16 @@ export default function ProductForm({ product }: Props) {
               value="upload"
               checked={imageSource === "upload"}
               onChange={() => selectImageSource("upload")}
-              disabled={saving}
+              disabled={saving || !canUploadToFirebaseStorage}
               className="mt-1 h-4 w-4 accent-forest"
             />
             <span>
               <span className="block text-sm font-semibold">Firebase upload</span>
-              <span className="mt-1 block text-xs text-ink/55">Use after Firebase Storage is initialized.</span>
+              <span className="mt-1 block text-xs text-ink/55">
+                {canUploadToFirebaseStorage
+                  ? "Use after Firebase Storage is initialized."
+                  : "Unavailable: Firebase Storage is not configured in this environment."}
+              </span>
             </span>
           </label>
         </div>
@@ -339,7 +445,17 @@ export default function ProductForm({ product }: Props) {
           </div>
         ) : (
           <div>
-            <label htmlFor="product-image" className="mb-2 block text-sm font-semibold">Upload image</label>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <label htmlFor="product-image" className="block text-sm font-semibold">Upload image</label>
+              <button
+                type="button"
+                onClick={() => void testStorageConnection()}
+                disabled={saving || storageCheckState === "checking" || !canUploadToFirebaseStorage}
+                className="rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink/70 transition hover:border-forest hover:text-forest disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {storageCheckState === "checking" ? "Checking..." : "Test Storage Connection"}
+              </button>
+            </div>
             <input
               id="product-image"
               type="file"
@@ -348,7 +464,26 @@ export default function ProductForm({ product }: Props) {
               disabled={saving}
               className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-forest file:px-4 file:py-2.5 file:font-semibold file:text-white hover:file:bg-forest-light disabled:opacity-60"
             />
-            <p className="mt-2 text-xs text-ink/50">Optional. Maximum 5 MB. This requires active Firebase Storage.</p>
+            <p className="mt-2 text-xs text-ink/50">Optional. Maximum 5 MB. This button selects a local file and requires active Firebase Storage.</p>
+            {storageCheckState !== "idle" && (
+              <p
+                role="status"
+                className={`mt-2 rounded-md border p-2 text-xs ${
+                  storageCheckState === "ok"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : storageCheckState === "checking"
+                      ? "border-blue-200 bg-blue-50 text-blue-700"
+                      : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                {storageCheckMessage}
+              </p>
+            )}
+            {storageCheckState === "error" && (
+              <p className="mt-2 text-xs text-ink/60">
+                Retry the connection test after fixing Firebase Storage settings, or switch to Image link/path to continue adding products.
+              </p>
+            )}
           </div>
         )}
 
@@ -413,7 +548,7 @@ export default function ProductForm({ product }: Props) {
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button type="button" disabled={saving} className="btn-secondary" onClick={() => router.push("/admin/products")}>Cancel</button>
         <button type="submit" disabled={saving || !isAdmin} className="btn-primary">
-          {saving ? status || "Savingâ€¦" : product ? "Save changes" : "Create product"}
+          {saving ? status || "Saving..." : product ? "Save changes" : "Create product"}
         </button>
       </div>
     </form>
